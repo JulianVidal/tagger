@@ -1,7 +1,11 @@
 package main
 
 // import "github.com/JulianVidal/tagger/cmd/tagger"
-import "github.com/JulianVidal/tagger/internal/engine"
+import (
+	"fmt"
+
+	"github.com/JulianVidal/tagger/internal/engine"
+)
 
 func main() {
 	// tagger.Execute()
@@ -26,4 +30,6 @@ func main() {
 	println("All:")
 
 	eng.Print()
+
+	fmt.Println(eng.Serialize())
 }

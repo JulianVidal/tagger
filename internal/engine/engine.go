@@ -29,24 +29,24 @@ func mapUnion[M map[K]V, K comparable, V comparable](a M, b M) {
 	}
 }
 
-type Object struct {
+type ObjNode struct {
 	name    string
 	format  string
-	parents []*Node
+	parents []*TagNode
 }
 
-func (obj Object) Print() {
+func (obj ObjNode) Print() {
 	fmt.Printf("\tName:%s\n\tFormat:%s\n", obj.name, obj.format)
 }
 
-type Node struct {
+type TagNode struct {
 	name     string
-	children []*Node
-	parents  []*Node
-	objects  []*Object
+	children []*TagNode
+	parents  []*TagNode
+	objects  []*ObjNode
 }
 
-func (node *Node) print() {
+func (node *TagNode) print() {
 	fmt.Printf("node: %s\n", node.name)
 	for _, obj := range node.objects {
 		obj.Print()
@@ -61,14 +61,14 @@ func (node *Node) print() {
 // TODO: Add a way to edit the parents of objects
 
 type Engine struct {
-	table map[string]*Node
+	table map[string]*TagNode
 }
 
 func NewEngine() *Engine {
-	root := Node{
+	root := TagNode{
 		name: "Root",
 	}
-	table := make(map[string]*Node)
+	table := make(map[string]*TagNode)
 	table[root.name] = &root
 
 	return &Engine{
@@ -77,8 +77,13 @@ func NewEngine() *Engine {
 }
 
 // TODO: Deal with parent not existing
+// TODO: Deal with tag already existing
 func (eng *Engine) AddTag(name string, parents []string) {
-	node := Node{
+	if _, exist := eng.table[name]; exist {
+		panic("Tag already exists")
+	}
+
+	node := TagNode{
 		name: name,
 	}
 
@@ -101,7 +106,7 @@ func (eng *Engine) AddTag(name string, parents []string) {
 func (eng *Engine) delTag(name string) error {
 	node, exist := eng.table[name]
 	if !exist {
-		return errors.New("Tag not found in table")
+		panic("Tag not found in table")
 	}
 
 	for _, parent := range node.parents {
@@ -130,7 +135,7 @@ func (eng *Engine) delTag(name string) error {
 // NOTE: Should objects be in the table map in Engine?
 // TODO: Deal with a tag not existing
 func (eng *Engine) AddObj(name string, format string, tags []string) {
-	obj := &Object{
+	obj := &ObjNode{
 		name:   name,
 		format: format,
 	}
@@ -149,7 +154,7 @@ func (eng *Engine) AddObj(name string, format string, tags []string) {
 	}
 }
 
-func (eng *Engine) delObj(obj *Object) {
+func (eng *Engine) delObj(obj *ObjNode) {
 	for _, parent := range obj.parents {
 		var err error
 		parent.objects, err = delItemFromSlice(parent.objects, obj)
@@ -163,8 +168,8 @@ func (eng *Engine) Print() {
 	eng.table["Root"].print()
 }
 
-func (eng *Engine) getAllObjectsFromTag(tag *Node) map[string]*Object {
-	results := make(map[string]*Object)
+func (eng *Engine) getAllObjectsFromTag(tag *TagNode) map[string]*ObjNode {
+	results := make(map[string]*ObjNode)
 	for _, obj := range tag.objects {
 		results[obj.name] = obj
 	}
@@ -177,8 +182,8 @@ func (eng *Engine) getAllObjectsFromTag(tag *Node) map[string]*Object {
 }
 
 // TODO: Deal with a tag not existing
-func (eng *Engine) Query(tags []string) []*Object {
-	results := make(map[string]*Object)
+func (eng *Engine) Query(tags []string) []*ObjNode {
+	results := make(map[string]*ObjNode)
 	for _, tag_name := range tags {
 		tag, exist := eng.table[tag_name]
 		if !exist {
@@ -187,10 +192,64 @@ func (eng *Engine) Query(tags []string) []*Object {
 		mapUnion(results, eng.getAllObjectsFromTag(tag))
 	}
 
-	var resultList []*Object
+	var resultList []*ObjNode
 	for _, obj := range results {
 		resultList = append(resultList, obj)
 	}
 
 	return resultList
+}
+
+type EngineSer struct {
+	tags []TagSer
+	objs []ObjSer
+}
+
+type TagSer struct {
+	name string
+	tags []string
+}
+
+type ObjSer struct {
+	name   string
+	format string
+	tags   []string
+}
+
+func (eng *Engine) Serialize() EngineSer {
+	tags := []TagSer{}
+	objsMap := make(map[string]ObjSer)
+	objs := []ObjSer{}
+
+	for _, v := range eng.table {
+		tagSer := TagSer{
+			name: v.name,
+		}
+		for _, parent := range v.parents {
+			tagSer.tags = append(tagSer.tags, parent.name)
+		}
+		for _, object := range v.objects {
+			if _, exist := objsMap[object.name]; !exist {
+				objSer := ObjSer{
+					name:   object.name,
+					format: object.format,
+				}
+
+				for _, parent := range object.parents {
+					objSer.tags = append(objSer.tags, parent.name)
+				}
+				objsMap[object.name] = objSer
+			}
+		}
+		tags = append(tags, tagSer)
+	}
+
+	for _, v := range objsMap {
+		objs = append(objs, v)
+	}
+
+	return EngineSer{
+		tags: tags,
+		objs: objs,
+	}
 }
