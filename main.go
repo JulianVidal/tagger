@@ -31,5 +31,11 @@ func main() {
 
 	eng.Print()
 
-	fmt.Println(eng.Serialize())
+	fmt.Println("-----------------------------")
+
+	eng.Json("engine.json")
+
+	eng = engine.FromJson("engine.json")
+
+	eng.Print()
 }

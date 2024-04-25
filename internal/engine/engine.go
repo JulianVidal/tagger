@@ -103,6 +103,9 @@ func (eng *Engine) AddTag(name string, parents []string) {
 	eng.table[name] = &node
 }
 
+// TODO: Deal with child not being acknowledged by its parent
+// TODO: Deal with parent not being acknowledged by its children
+// TODO: Deal with orphan due to deleted parent
 func (eng *Engine) delTag(name string) error {
 	node, exist := eng.table[name]
 	if !exist {
@@ -122,6 +125,9 @@ func (eng *Engine) delTag(name string) error {
 		child.parents, err = delItemFromSlice(child.parents, node)
 		if err != nil {
 			panic(err)
+		}
+		if len(child.parents) == 0 {
+			panic("Orphaned child")
 		}
 	}
 
@@ -154,6 +160,7 @@ func (eng *Engine) AddObj(name string, format string, tags []string) {
 	}
 }
 
+// TODO: Deal with object not being acknowledged by its parent
 func (eng *Engine) delObj(obj *ObjNode) {
 	for _, parent := range obj.parents {
 		var err error
@@ -198,58 +205,4 @@ func (eng *Engine) Query(tags []string) []*ObjNode {
 	}
 
 	return resultList
-}
-
-type EngineSer struct {
-	tags []TagSer
-	objs []ObjSer
-}
-
-type TagSer struct {
-	name string
-	tags []string
-}
-
-type ObjSer struct {
-	name   string
-	format string
-	tags   []string
-}
-
-func (eng *Engine) Serialize() EngineSer {
-	tags := []TagSer{}
-	objsMap := make(map[string]ObjSer)
-	objs := []ObjSer{}
-
-	for _, v := range eng.table {
-		tagSer := TagSer{
-			name: v.name,
-		}
-		for _, parent := range v.parents {
-			tagSer.tags = append(tagSer.tags, parent.name)
-		}
-		for _, object := range v.objects {
-			if _, exist := objsMap[object.name]; !exist {
-				objSer := ObjSer{
-					name:   object.name,
-					format: object.format,
-				}
-
-				for _, parent := range object.parents {
-					objSer.tags = append(objSer.tags, parent.name)
-				}
-				objsMap[object.name] = objSer
-			}
-		}
-		tags = append(tags, tagSer)
-	}
-
-	for _, v := range objsMap {
-		objs = append(objs, v)
-	}
-
-	return EngineSer{
-		tags: tags,
-		objs: objs,
-	}
 }
