@@ -1,30 +1,60 @@
 package main
 
-// import "github.com/JulianVidal/tagger/cmd/tagger"
 import (
+	"encoding/json"
 	"fmt"
 	"net"
-	"os"
-)
 
-const (
-	SERVER_NETWORK = "localhost"
-	SERVER_TYPE    = "tcp"
+	"github.com/JulianVidal/tagger/internal/command"
+	"github.com/JulianVidal/tagger/internal/serialize"
+	"github.com/JulianVidal/tagger/internal/socket"
 )
 
 func main() {
-	port := os.Args[1]
-	connection, err := net.Dial(SERVER_TYPE, SERVER_NETWORK+":"+port)
+	fmt.Printf("Dialing: " + socket.ADDRESS + "\n")
+
+	connection, err := net.Dial(socket.TYPE, socket.ADDRESS)
 	if err != nil {
 		panic(err)
 	}
 
-	_, err = connection.Write([]byte("Test write to socket"))
-	buffer := make([]byte, 1024)
-	mLen, err := connection.Read(buffer)
+	obj := serialize.Obj{
+		Name:   "temp",
+		Format: "temp format",
+		Tags:   nil,
+	}
+
+	com, err := command.CreateCommand(command.Add, command.Object, obj)
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println("Received: ", string(buffer[:mLen]))
+
+	sendCommand(connection, com)
+
 	defer connection.Close()
+}
+
+func sendCommand(connection net.Conn, com command.Command) error {
+	commandJSON, err := json.Marshal(com)
+	if err != nil {
+		return fmt.Errorf("Couldn't encode command into JSON: %w", err)
+	}
+
+	fmt.Printf("Sent: %s\n", string(commandJSON))
+
+	_, err = connection.Write(commandJSON)
+	if err != nil {
+		return fmt.Errorf("Couldn't write json to socket: %w", err)
+	}
+
+	buffer := make([]byte, 1024)
+
+	mLen, err := connection.Read(buffer)
+	if err != nil {
+		return fmt.Errorf("Couldn't read data from buffer: %w", err)
+	}
+
+	fmt.Printf("Received: %s", string(buffer[:mLen]))
+
+	return nil
 }
