@@ -6,7 +6,7 @@ import (
 	"net"
 
 	"github.com/JulianVidal/tagger/internal/command"
-	"github.com/JulianVidal/tagger/internal/serialize"
+	"github.com/JulianVidal/tagger/internal/serialized"
 	"github.com/JulianVidal/tagger/internal/socket"
 )
 
@@ -17,24 +17,24 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	defer connection.Close()
 
-	obj := serialize.Obj{
+	obj := serialized.Obj{
 		Name:   "temp",
 		Format: "temp format",
-		Tags:   nil,
 	}
 
-	com, err := command.CreateCommand(command.Add, command.Object, obj)
-	if err != nil {
-		panic(err)
+	com := command.Packet{
+		Type: command.AddObj,
+		Data: command.AddObjData{
+			Obj: obj,
+		},
 	}
 
 	sendCommand(connection, com)
-
-	defer connection.Close()
 }
 
-func sendCommand(connection net.Conn, com command.Command) error {
+func sendCommand(connection net.Conn, com command.Packet) error {
 	commandJSON, err := json.Marshal(com)
 	if err != nil {
 		return fmt.Errorf("Couldn't encode command into JSON: %w", err)

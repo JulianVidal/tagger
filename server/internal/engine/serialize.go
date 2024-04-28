@@ -3,11 +3,11 @@ package engine
 import (
 	"encoding/json"
 
-	"github.com/JulianVidal/tagger/internal/serialize"
+	"github.com/JulianVidal/tagger/internal/serialized"
 )
 
-func (tag *TagNode) serialize() serialize.Tag {
-	tagSer := serialize.Tag{
+func (tag *TagNode) serialize() serialized.Tag {
+	tagSer := serialized.Tag{
 		Name: tag.name,
 	}
 
@@ -18,8 +18,8 @@ func (tag *TagNode) serialize() serialize.Tag {
 	return tagSer
 }
 
-func (obj *ObjNode) serialize() serialize.Obj {
-	objSer := serialize.Obj{
+func (obj *ObjNode) serialize() serialized.Obj {
+	objSer := serialized.Obj{
 		Name:   obj.name,
 		Format: obj.format,
 	}
@@ -31,11 +31,11 @@ func (obj *ObjNode) serialize() serialize.Obj {
 	return objSer
 }
 
-func (eng *Engine) serialize() serialize.Engine {
-	tags := make(map[string]serialize.Tag)
-	objs := make(map[string]serialize.Obj)
+func serialize() serialized.Engine {
+	tags := make(map[string]serialized.Tag)
+	objs := make(map[string]serialized.Obj)
 
-	for _, v := range eng.table {
+	for _, v := range table {
 		tags[v.name] = v.serialize()
 
 		for _, object := range v.objects {
@@ -45,14 +45,14 @@ func (eng *Engine) serialize() serialize.Engine {
 		}
 	}
 
-	return serialize.Engine{
+	return serialized.Engine{
 		Tags: tags,
 		Objs: objs,
 	}
 }
 
-func (eng *Engine) ToJson() []byte {
-	data, err := json.Marshal(eng.serialize())
+func ToJson() []byte {
+	data, err := json.Marshal(serialize())
 	if err != nil {
 		panic("Couldn't marshal data")
 	}
@@ -60,8 +60,8 @@ func (eng *Engine) ToJson() []byte {
 	return data
 }
 
-func (eng *Engine) addRecursiveTags(tags map[string]serialize.Tag, tag serialize.Tag) {
-	_, exist := eng.table[tag.Name]
+func addRecursiveTags(tags map[string]serialized.Tag, tag serialized.Tag) {
+	_, exist := table[tag.Name]
 
 	if exist {
 		return
@@ -74,32 +74,30 @@ func (eng *Engine) addRecursiveTags(tags map[string]serialize.Tag, tag serialize
 			panic("Child claims missing parent")
 		}
 
-		eng.addRecursiveTags(tags, parent)
+		addRecursiveTags(tags, parent)
 	}
 
-	eng.AddTag(tag.Name, tag.Tags)
+	AddTag(tag.Name, tag.Tags)
 }
 
-func deserialize(engSer serialize.Engine) *Engine {
-	eng := NewEngine()
+func deserialize(engSer serialized.Engine) {
+	InitEngine()
 
 	for _, val := range engSer.Tags {
-		eng.addRecursiveTags(engSer.Tags, val)
+		addRecursiveTags(engSer.Tags, val)
 	}
 
 	for _, val := range engSer.Objs {
-		eng.AddObj(val.Name, val.Format, val.Tags)
+		AddObj(val.Name, val.Format, val.Tags)
 	}
-
-	return eng
 }
 
-func FromJson(data []byte) *Engine {
-	var eng serialize.Engine
+func FromJson(data []byte) {
+	var eng serialized.Engine
 	err := json.Unmarshal(data, &eng)
 	if err != nil {
 		panic("Couldn't unmarshall data")
 	}
 
-	return deserialize(eng)
+	deserialize(eng)
 }

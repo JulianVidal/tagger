@@ -1,4 +1,4 @@
-package serialize
+package serialized
 
 type Tag struct {
 	Name string

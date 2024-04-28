@@ -29,6 +29,12 @@ func mapUnion[M map[K]V, K comparable, V comparable](a M, b M) {
 	}
 }
 
+// TODO: Add a way to edit the children of tags
+// TODO: Add a way to edit the parents of tags
+// TODO: Add a way to edit the parents of objects
+
+var table map[string]*TagNode
+
 type ObjNode struct {
 	name    string
 	format  string
@@ -56,30 +62,18 @@ func (node *TagNode) print() {
 	}
 }
 
-// TODO: Add a way to edit the children of tags
-// TODO: Add a way to edit the parents of tags
-// TODO: Add a way to edit the parents of objects
-
-type Engine struct {
-	table map[string]*TagNode
-}
-
-func NewEngine() *Engine {
+func InitEngine() {
 	root := TagNode{
 		name: "Root",
 	}
-	table := make(map[string]*TagNode)
+	table = make(map[string]*TagNode)
 	table[root.name] = &root
-
-	return &Engine{
-		table: table,
-	}
 }
 
 // TODO: Deal with parent not existing
 // TODO: Deal with tag already existing
-func (eng *Engine) AddTag(name string, parents []string) {
-	if _, exist := eng.table[name]; exist {
+func AddTag(name string, parents []string) {
+	if _, exist := table[name]; exist {
 		panic("Tag already exists")
 	}
 
@@ -92,7 +86,7 @@ func (eng *Engine) AddTag(name string, parents []string) {
 	}
 
 	for _, parent_name := range parents {
-		parent, exist := eng.table[parent_name]
+		parent, exist := table[parent_name]
 		if !exist {
 			panic("Parent not found when adding tag")
 		}
@@ -100,14 +94,14 @@ func (eng *Engine) AddTag(name string, parents []string) {
 		node.parents = append(node.parents, parent)
 	}
 
-	eng.table[name] = &node
+	table[name] = &node
 }
 
 // TODO: Deal with child not being acknowledged by its parent
 // TODO: Deal with parent not being acknowledged by its children
 // TODO: Deal with orphan due to deleted parent
-func (eng *Engine) delTag(name string) error {
-	node, exist := eng.table[name]
+func DelTag(name string) error {
+	node, exist := table[name]
 	if !exist {
 		panic("Tag not found in table")
 	}
@@ -131,16 +125,16 @@ func (eng *Engine) delTag(name string) error {
 		}
 	}
 
-	eng.table["Root"].objects = append(eng.table["Root"].objects, node.objects...)
+	table["Root"].objects = append(table["Root"].objects, node.objects...)
 
-	eng.table[name] = nil
+	table[name] = nil
 
 	return nil
 }
 
 // NOTE: Should objects be in the table map in Engine?
 // TODO: Deal with a tag not existing
-func (eng *Engine) AddObj(name string, format string, tags []string) {
+func AddObj(name string, format string, tags []string) {
 	obj := &ObjNode{
 		name:   name,
 		format: format,
@@ -151,7 +145,7 @@ func (eng *Engine) AddObj(name string, format string, tags []string) {
 	}
 
 	for _, tag_name := range tags {
-		tag, exist := eng.table[tag_name]
+		tag, exist := table[tag_name]
 		if !exist {
 			panic("Tag doesn't exist when adding object")
 		}
@@ -161,7 +155,7 @@ func (eng *Engine) AddObj(name string, format string, tags []string) {
 }
 
 // TODO: Deal with object not being acknowledged by its parent
-func (eng *Engine) delObj(obj *ObjNode) {
+func DelObj(obj *ObjNode) {
 	for _, parent := range obj.parents {
 		var err error
 		parent.objects, err = delItemFromSlice(parent.objects, obj)
@@ -171,32 +165,32 @@ func (eng *Engine) delObj(obj *ObjNode) {
 	}
 }
 
-func (eng *Engine) Print() {
-	eng.table["Root"].print()
+func Print() {
+	table["Root"].print()
 }
 
-func (eng *Engine) getAllObjectsFromTag(tag *TagNode) map[string]*ObjNode {
+func getAllObjectsFromTag(tag *TagNode) map[string]*ObjNode {
 	results := make(map[string]*ObjNode)
 	for _, obj := range tag.objects {
 		results[obj.name] = obj
 	}
 
 	for _, sub_tag := range tag.children {
-		mapUnion(results, eng.getAllObjectsFromTag(sub_tag))
+		mapUnion(results, getAllObjectsFromTag(sub_tag))
 	}
 
 	return results
 }
 
 // TODO: Deal with a tag not existing
-func (eng *Engine) Query(tags []string) []*ObjNode {
+func Query(tags []string) []*ObjNode {
 	results := make(map[string]*ObjNode)
 	for _, tag_name := range tags {
-		tag, exist := eng.table[tag_name]
+		tag, exist := table[tag_name]
 		if !exist {
 			panic("Tag not found when querying")
 		}
-		mapUnion(results, eng.getAllObjectsFromTag(tag))
+		mapUnion(results, getAllObjectsFromTag(tag))
 	}
 
 	var resultList []*ObjNode

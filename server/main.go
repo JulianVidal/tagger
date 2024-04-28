@@ -2,43 +2,44 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net"
 	"os"
+	"reflect"
 
 	"github.com/JulianVidal/tagger/internal/command"
-	"github.com/JulianVidal/tagger/internal/serialize"
 	"github.com/JulianVidal/tagger/internal/socket"
 	"github.com/JulianVidal/tagger/server/internal/engine"
 )
 
 func main() {
 	// tagger.Execute()
-	eng := engine.NewEngine()
+	engine.InitEngine()
 
-	eng.AddTag("BT", []string{})
-	eng.AddTag("Sat", []string{"BT"})
+	engine.AddTag("BT", []string{})
+	engine.AddTag("Sat", []string{"BT"})
 
-	eng.AddObj("lab_doc.doc", "Word Document", []string{"Sat"})
-	eng.AddObj("start.ptx", "Powerpoint Presentation", []string{"BT"})
+	engine.AddObj("lab_doc.doc", "Word Document", []string{"Sat"})
+	engine.AddObj("start.ptx", "Powerpoint Presentation", []string{"BT"})
 
 	println("Query: BT")
-	for _, obj := range eng.Query([]string{"BT"}) {
+	for _, obj := range engine.Query([]string{"BT"}) {
 		obj.Print()
 	}
 
 	println("Query: Sat")
-	for _, obj := range eng.Query([]string{"Sat"}) {
+	for _, obj := range engine.Query([]string{"Sat"}) {
 		obj.Print()
 	}
 
 	println("All:")
 
-	eng.Print()
+	engine.Print()
 
 	fmt.Println("-----------------------------")
 
-	data := eng.ToJson()
+	data := engine.ToJson()
 
 	err := os.WriteFile("engine.json", data, 0644)
 	if err != nil {
@@ -50,9 +51,9 @@ func main() {
 		panic("Couldn't read file")
 	}
 
-	eng = engine.FromJson(file)
+	engine.FromJson(file)
 
-	eng.Print()
+	engine.Print()
 
 	run()
 }
@@ -90,7 +91,7 @@ func processClient(connection net.Conn) {
 	}
 
 	fmt.Println("Received: ", string(buffer[:mLen]))
-	var com command.Command
+	var com command.Packet
 	err = json.Unmarshal(buffer[:mLen], &com)
 	if err != nil {
 		fmt.Printf("Error unmarhsalling buffer into command. %s\n", err)
@@ -99,25 +100,32 @@ func processClient(connection net.Conn) {
 
 	fmt.Printf("Unmarshal: %+v\n", com)
 
-	switch com.Noun {
-	case command.Tag:
-		var subject serialize.Tag
-		err = json.Unmarshal(com.Subject, &subject)
-		if err != nil {
-			fmt.Printf("Error unmarshalling subject. %s\n", err)
-		}
-		fmt.Printf("Unmarshal Tag: %+v\n", subject)
-	case command.Object:
-		var subject serialize.Obj
-		err = json.Unmarshal(com.Subject, &subject)
-		if err != nil {
-			fmt.Printf("Error unmarshalling subject. %s\n", err)
-		}
-		fmt.Printf("Unmarshal Object: %+v\n", subject)
-	}
+	fmt.Println(reflect.TypeOf(com))
+	fmt.Println(reflect.TypeOf(com.Type))
+	fmt.Println(reflect.TypeOf(com.Data.(command.AddObjData)))
+
+	err = runCommand(com)
+
 	if err != nil {
-		fmt.Printf("Couldn't unmarshal subject. %s\n", err)
+		connection.Write([]byte("Command passed or failed"))
+	}
+}
+
+func runCommand(com command.Packet) error {
+	switch com.Type {
+	case command.AddTag:
+	case command.DelTag:
+
+	case command.AddObj:
+		// object := com.Data.(types.Object)
+		// engine.AddObj(object.Nameobject.Format)
+	case command.DelObj:
+
+	case command.Query:
+
+	default:
+		return errors.New("Unknown command")
 	}
 
-	connection.Write([]byte("Command passed or failed"))
+	return nil
 }
