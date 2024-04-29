@@ -1,6 +1,6 @@
 package engine
 
-// NOTE: Consider changing all array inputs to variadic parameters
+// TODO: Remove "Root" tag, it is not needed
 import (
 	"errors"
 	"fmt"
@@ -70,11 +70,9 @@ func InitEngine() {
 	table[root.name] = &root
 }
 
-// TODO: Deal with parent not existing
-// TODO: Deal with tag already existing
-func AddTag(name string, parents []string) {
+func AddTag(name string, parents []string) error {
 	if _, exist := table[name]; exist {
-		panic("Tag already exists")
+		return fmt.Errorf("Tag '%s' already exists", name)
 	}
 
 	node := TagNode{
@@ -86,46 +84,47 @@ func AddTag(name string, parents []string) {
 	}
 
 	for _, parent_name := range parents {
-		parent, exist := table[parent_name]
-		if !exist {
-			panic("Parent not found when adding tag")
+		if _, exist := table[parent_name]; !exist {
+			return fmt.Errorf("Parent tag '%s' not found", parent_name)
 		}
+	}
+
+	for _, parent_name := range parents {
+		parent, _ := table[parent_name]
 		parent.children = append(parent.children, &node)
 		node.parents = append(node.parents, parent)
 	}
 
 	table[name] = &node
+
+	return nil
 }
 
-// TODO: Deal with child not being acknowledged by its parent
-// TODO: Deal with parent not being acknowledged by its children
-// TODO: Deal with orphan due to deleted parent
 func DelTag(name string) error {
-	node, exist := table[name]
+	tag, exist := table[name]
 	if !exist {
-		panic("Tag not found in table")
+		return fmt.Errorf("Tag not found in engine: %s", name)
 	}
 
-	for _, parent := range node.parents {
-		var err error
-		parent.children, err = delItemFromSlice(parent.children, node)
-		if err != nil {
-			panic(err)
+	for _, child := range tag.children {
+		if len(child.parents) == 1 {
+			return fmt.Errorf("Tag '%s' would orphan child '%s'", name, child.name)
 		}
 	}
 
-	for _, child := range node.children {
-		var err error
-		child.parents, err = delItemFromSlice(child.parents, node)
-		if err != nil {
-			panic(err)
-		}
-		if len(child.parents) == 0 {
-			panic("Orphaned child")
+	for _, object := range tag.objects {
+		if len(object.parents) == 1 {
+			return fmt.Errorf("Tag '%s' would orphan object '%s'", name, object.name)
 		}
 	}
 
-	table["Root"].objects = append(table["Root"].objects, node.objects...)
+	for _, child := range tag.children {
+		child.parents, _ = delItemFromSlice(child.parents, tag)
+	}
+
+	for _, parent := range tag.parents {
+		parent.children, _ = delItemFromSlice(parent.children, tag)
+	}
 
 	table[name] = nil
 
@@ -133,8 +132,7 @@ func DelTag(name string) error {
 }
 
 // NOTE: Should objects be in the table map in Engine?
-// TODO: Deal with a tag not existing
-func AddObj(name string, format string, tags []string) {
+func AddObj(name string, format string, tags []string) error {
 	obj := &ObjNode{
 		name:   name,
 		format: format,
@@ -145,24 +143,26 @@ func AddObj(name string, format string, tags []string) {
 	}
 
 	for _, tag_name := range tags {
-		tag, exist := table[tag_name]
-		if !exist {
-			panic("Tag doesn't exist when adding object")
+		if _, exist := table[tag_name]; !exist {
+			return fmt.Errorf("Tag '%s' doesn't exist in engine", tag_name)
 		}
+	}
+
+	for _, tag_name := range tags {
+		tag, _ := table[tag_name]
 		obj.parents = append(obj.parents, tag)
 		tag.objects = append(tag.objects, obj)
 	}
+
+	return nil
 }
 
 // TODO: Deal with object not being acknowledged by its parent
-func DelObj(obj *ObjNode) {
+func DelObj(obj *ObjNode) error {
 	for _, parent := range obj.parents {
-		var err error
-		parent.objects, err = delItemFromSlice(parent.objects, obj)
-		if err != nil {
-			panic(err)
-		}
+		parent.objects, _ = delItemFromSlice(parent.objects, obj)
 	}
+	return nil
 }
 
 func Print() {
@@ -183,13 +183,17 @@ func getAllObjectsFromTag(tag *TagNode) map[string]*ObjNode {
 }
 
 // TODO: Deal with a tag not existing
-func Query(tags []string) []*ObjNode {
+func Query(tags []string) ([]*ObjNode, error) {
 	results := make(map[string]*ObjNode)
+
 	for _, tag_name := range tags {
-		tag, exist := table[tag_name]
-		if !exist {
-			panic("Tag not found when querying")
+		if _, exist := table[tag_name]; !exist {
+			return nil, fmt.Errorf("Tag '%s' not found", tag_name)
 		}
+	}
+
+	for _, tag_name := range tags {
+		tag, _ := table[tag_name]
 		mapUnion(results, getAllObjectsFromTag(tag))
 	}
 
@@ -198,5 +202,5 @@ func Query(tags []string) []*ObjNode {
 		resultList = append(resultList, obj)
 	}
 
-	return resultList
+	return resultList, nil
 }

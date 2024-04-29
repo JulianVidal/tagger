@@ -100,14 +100,10 @@ func processClient(connection net.Conn) {
 
 	fmt.Printf("Unmarshal: %+v\n", com)
 
-	fmt.Println(reflect.TypeOf(com))
-	fmt.Println(reflect.TypeOf(com.Type))
-	fmt.Println(reflect.TypeOf(com.Data.(command.AddObjData)))
-
 	err = runCommand(com)
 
 	if err != nil {
-		connection.Write([]byte("Command passed or failed"))
+		connection.Write([]byte("Command failed"))
 	}
 }
 
@@ -117,6 +113,8 @@ func runCommand(com command.Packet) error {
 	case command.DelTag:
 
 	case command.AddObj:
+		obj := com.Data.(command.AddObjData).Obj
+		engine.AddObj(obj.Name, obj.Format, obj.Tags)
 		// object := com.Data.(types.Object)
 		// engine.AddObj(object.Nameobject.Format)
 	case command.DelObj:
