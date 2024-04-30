@@ -10,6 +10,8 @@ import (
 	"github.com/JulianVidal/tagger/internal/socket"
 )
 
+// TODO: Move the tag and objects added in server and send them through commands
+// TODO: Create CLI were you point it to a file, give tags and it should figure out the rest
 func main() {
 	fmt.Printf("Dialing: " + socket.ADDRESS + "\n")
 

@@ -1,6 +1,5 @@
 package engine
 
-// TODO: Remove "Root" tag, it is not needed
 import (
 	"errors"
 	"fmt"
@@ -146,7 +145,6 @@ func AddObj(name string, format string, tags []string) error {
 	return nil
 }
 
-// TODO: Deal with object not being acknowledged by its parent
 func DelObj(obj *ObjNode) error {
 	for _, parent := range obj.parents {
 		parent.objects, _ = delItemFromSlice(parent.objects, obj)
@@ -173,7 +171,6 @@ func getAllObjectsFromTag(tag *TagNode) map[string]*ObjNode {
 	return results
 }
 
-// TODO: Deal with a tag not existing
 func Query(tags []string) ([]*ObjNode, error) {
 	results := make(map[string]*ObjNode)
 

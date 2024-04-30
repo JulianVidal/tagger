@@ -83,7 +83,8 @@ func run() {
 		connection, err := server.Accept()
 
 		if err != nil {
-			panic("Error accepting new connection")
+			fmt.Printf("New Client rejected: %s\n", err)
+			continue
 		}
 
 		fmt.Println("New Client accepted")
