@@ -57,9 +57,6 @@ func (node *TagNode) print() {
 	for _, obj := range node.objects {
 		obj.Print()
 	}
-	for _, child := range node.children {
-		child.print()
-	}
 }
 
 func InitEngine() {
