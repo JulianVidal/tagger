@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net"
 	"os"
-	"reflect"
 
 	"github.com/JulianVidal/tagger/internal/command"
 	"github.com/JulianVidal/tagger/internal/socket"
@@ -24,13 +23,23 @@ func main() {
 	engine.AddObj("start.ptx", "Powerpoint Presentation", []string{"BT"})
 
 	println("Query: BT")
-	for _, obj := range engine.Query([]string{"BT"}) {
-		obj.Print()
+	result, err := engine.Query([]string{"BT"})
+	if err == nil {
+		for _, obj := range result {
+			obj.Print()
+		}
+	} else {
+		fmt.Printf("Couldn't get query due to error: '%s'", err)
 	}
 
 	println("Query: Sat")
-	for _, obj := range engine.Query([]string{"Sat"}) {
-		obj.Print()
+	result, err = engine.Query([]string{"Sat"})
+	if err == nil {
+		for _, obj := range result {
+			obj.Print()
+		}
+	} else {
+		fmt.Printf("Couldn't get query due to error: '%s'", err)
 	}
 
 	println("All:")
@@ -41,7 +50,7 @@ func main() {
 
 	data := engine.ToJson()
 
-	err := os.WriteFile("engine.json", data, 0644)
+	err = os.WriteFile("engine.json", data, 0644)
 	if err != nil {
 		panic("Couldn't write engine to file")
 	}
@@ -94,7 +103,7 @@ func processClient(connection net.Conn) {
 	var com command.Packet
 	err = json.Unmarshal(buffer[:mLen], &com)
 	if err != nil {
-		fmt.Printf("Error unmarhsalling buffer into command. %s\n", err)
+		fmt.Printf("Error unmarhsalling into command: %s\n", err)
 		return
 	}
 
@@ -103,7 +112,8 @@ func processClient(connection net.Conn) {
 	err = runCommand(com)
 
 	if err != nil {
-		connection.Write([]byte("Command failed"))
+		msg := fmt.Sprintf("Command failed due to: %s\n", err)
+		connection.Write([]byte(msg))
 	}
 }
 
@@ -114,9 +124,10 @@ func runCommand(com command.Packet) error {
 
 	case command.AddObj:
 		obj := com.Data.(command.AddObjData).Obj
-		engine.AddObj(obj.Name, obj.Format, obj.Tags)
-		// object := com.Data.(types.Object)
-		// engine.AddObj(object.Nameobject.Format)
+		err := engine.AddObj(obj.Name, obj.Format, obj.Tags)
+		if err != nil {
+			return fmt.Errorf("Couldn't add object '%s' due to: %s", obj.Name, err)
+		}
 	case command.DelObj:
 
 	case command.Query:

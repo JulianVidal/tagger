@@ -71,7 +71,7 @@ func addRecursiveTags(tags map[string]serialized.Tag, tag serialized.Tag) {
 		parent, exist := tags[parentName]
 
 		if !exist {
-			panic("Child claims missing parent")
+			panic("Parent Tag doesn't exist")
 		}
 
 		addRecursiveTags(tags, parent)

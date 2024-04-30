@@ -63,11 +63,7 @@ func (node *TagNode) print() {
 }
 
 func InitEngine() {
-	root := TagNode{
-		name: "Root",
-	}
 	table = make(map[string]*TagNode)
-	table[root.name] = &root
 }
 
 func AddTag(name string, parents []string) error {
@@ -77,10 +73,6 @@ func AddTag(name string, parents []string) error {
 
 	node := TagNode{
 		name: name,
-	}
-
-	if len(parents) == 0 {
-		parents = append(parents, "Root")
 	}
 
 	for _, parent_name := range parents {
@@ -139,7 +131,7 @@ func AddObj(name string, format string, tags []string) error {
 	}
 
 	if len(tags) == 0 {
-		tags = append(tags, "Root")
+		return fmt.Errorf("No tags were provided")
 	}
 
 	for _, tag_name := range tags {
@@ -166,7 +158,9 @@ func DelObj(obj *ObjNode) error {
 }
 
 func Print() {
-	table["Root"].print()
+	for _, v := range table {
+		v.print()
+	}
 }
 
 func getAllObjectsFromTag(tag *TagNode) map[string]*ObjNode {
