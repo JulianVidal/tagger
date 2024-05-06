@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"net"
-	"os"
 
 	"github.com/JulianVidal/tagger/internal/command"
 	"github.com/JulianVidal/tagger/internal/socket"
@@ -15,54 +14,6 @@ import (
 func main() {
 	// tagger.Execute()
 	engine.InitEngine()
-
-	engine.AddTag("BT", []string{})
-	engine.AddTag("Sat", []string{"BT"})
-
-	engine.AddObj("lab_doc.doc", "Word Document", []string{"Sat"})
-	engine.AddObj("start.ptx", "Powerpoint Presentation", []string{"BT"})
-
-	println("Query: BT")
-	result, err := engine.Query([]string{"BT"})
-	if err == nil {
-		for _, obj := range result {
-			obj.Print()
-		}
-	} else {
-		fmt.Printf("Couldn't get query due to error: '%s'", err)
-	}
-
-	println("Query: Sat")
-	result, err = engine.Query([]string{"Sat"})
-	if err == nil {
-		for _, obj := range result {
-			obj.Print()
-		}
-	} else {
-		fmt.Printf("Couldn't get query due to error: '%s'", err)
-	}
-
-	println("All:")
-
-	engine.Print()
-
-	fmt.Println("-----------------------------")
-
-	data := engine.ToJson()
-
-	err = os.WriteFile("engine.json", data, 0644)
-	if err != nil {
-		panic("Couldn't write engine to file")
-	}
-
-	file, err := os.ReadFile("engine.json")
-	if err != nil {
-		panic("Couldn't read file")
-	}
-
-	engine.FromJson(file)
-
-	engine.Print()
 
 	run()
 }
@@ -94,48 +45,70 @@ func run() {
 
 func processClient(connection net.Conn) {
 	buffer := make([]byte, 1024)
-	mLen, err := connection.Read(buffer)
-	if err != nil {
-		fmt.Println("Error reading from connection")
-		return
-	}
+	for {
+		mLen, err := connection.Read(buffer)
+		if err != nil {
+			fmt.Println("Error reading from connection")
+			return
+		}
 
-	fmt.Println("Received: ", string(buffer[:mLen]))
-	var com command.Packet
-	err = json.Unmarshal(buffer[:mLen], &com)
-	if err != nil {
-		fmt.Printf("Error unmarhsalling into command: %s\n", err)
-		return
-	}
+		fmt.Println("Received: ", string(buffer[:mLen]))
+		var com command.Packet
+		err = json.Unmarshal(buffer[:mLen], &com)
+		if err != nil {
+			fmt.Printf("Error unmarhsalling into command: %s\n", err)
+			return
+		}
 
-	fmt.Printf("Unmarshal: %+v\n", com)
+		fmt.Printf("Unmarshal: %+v\n", com)
 
-	err = runCommand(com)
+		result, err := runCommand(com)
 
-	if err != nil {
-		msg := fmt.Sprintf("Command failed due to: %s\n", err)
-		connection.Write([]byte(msg))
+		if err != nil {
+			msg := fmt.Sprintf("Command failed due to: %s\n", err)
+			connection.Write([]byte(msg))
+		} else {
+			connection.Write([]byte(result))
+			engine.Print()
+		}
 	}
 }
 
-func runCommand(com command.Packet) error {
+func runCommand(com command.Packet) (string, error) {
 	switch com.Type {
 	case command.AddTag:
+		tag := com.Data.(command.AddTagData).Tag
+		err := engine.AddTag(tag.Name, tag.Tags)
+		if err != nil {
+			return "", fmt.Errorf("Couldn't add tag '%s' due to: %s", tag.Name, err)
+		}
+		return "Added tag", nil
 	case command.DelTag:
 
 	case command.AddObj:
 		obj := com.Data.(command.AddObjData).Obj
 		err := engine.AddObj(obj.Name, obj.Format, obj.Tags)
 		if err != nil {
-			return fmt.Errorf("Couldn't add object '%s' due to: %s", obj.Name, err)
+			return "", fmt.Errorf("Couldn't add object '%s' due to: %s", obj.Name, err)
 		}
+		return "Added object", nil
 	case command.DelObj:
 
 	case command.Query:
+		query := com.Data.(command.QueryData).Tags
+		objs, err := engine.Query(query)
+		if err != nil {
+			return "", fmt.Errorf("Coulnd't fullfill query '%s' due to : %s", query, err)
+		}
+		result := ""
+		for _, obj := range objs {
+			result += fmt.Sprintf("%s\n", obj)
+		}
+		return result, nil
 
 	default:
-		return errors.New("Unknown command")
+		return "", errors.New("Unknown command")
 	}
 
-	return nil
+	return "Sucessfully ran command", nil
 }

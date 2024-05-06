@@ -69,7 +69,11 @@ func (p *Packet) UnmarshalJSON(b []byte) (err error) {
 			Name: tag["Name"].(string),
 		}
 		if tag["Tags"] != nil {
-			tagSer.Tags = tag["Tags"].([]string)
+			var tags []string
+			for _, t := range tag["Tags"].([]interface{}) {
+				tags = append(tags, t.(string))
+			}
+			tagSer.Tags = tags
 		}
 
 		p.Data = AddTagData{
@@ -88,7 +92,11 @@ func (p *Packet) UnmarshalJSON(b []byte) (err error) {
 			Format: obj["Format"].(string),
 		}
 		if obj["Tags"] != nil {
-			objSer.Tags = obj["Tags"].([]string)
+			var tags []string
+			for _, t := range obj["Tags"].([]interface{}) {
+				tags = append(tags, t.(string))
+			}
+			objSer.Tags = tags
 		}
 
 		p.Data = AddObjData{
@@ -101,8 +109,12 @@ func (p *Packet) UnmarshalJSON(b []byte) (err error) {
 		}
 
 	case Query:
+		var tags []string
+		for _, t := range data["Tags"].([]interface{}) {
+			tags = append(tags, t.(string))
+		}
 		p.Data = QueryData{
-			Tags: data["Tags"].([]string),
+			Tags: tags,
 		}
 
 	default:

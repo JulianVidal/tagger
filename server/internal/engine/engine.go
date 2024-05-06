@@ -5,6 +5,10 @@ import (
 	"fmt"
 )
 
+// TODO: I think the graph could use the table itself rather than pointers
+// TODO: Remove this client socket thing, I don't think it is beneficial
+// TODO: Create a tty that shows all the files, search with query or filename, like locate and everything
+
 func delItemFromSlice[S ~[]I, I comparable](s S, a I) (S, error) {
 	for i, b := range s {
 		if a == b {
@@ -40,8 +44,8 @@ type ObjNode struct {
 	parents []*TagNode
 }
 
-func (obj ObjNode) Print() {
-	fmt.Printf("\tName:%s\n\tFormat:%s\n", obj.name, obj.format)
+func (obj ObjNode) String() string {
+	return fmt.Sprintf("Object:%s\nFormat:%s\n", obj.name, obj.format)
 }
 
 type TagNode struct {
@@ -52,10 +56,17 @@ type TagNode struct {
 }
 
 func (node *TagNode) print() {
-	fmt.Printf("node: %s\n", node.name)
+	fmt.Println(node)
+}
+
+func (node *TagNode) String() string {
+	str := fmt.Sprintf("----------------------------------\n")
+	str += fmt.Sprintf("Tag: %s\n", node.name)
 	for _, obj := range node.objects {
-		obj.Print()
+		str += fmt.Sprintf("%s\n", obj)
 	}
+	str += fmt.Sprintf("----------------------------------\n")
+	return str
 }
 
 func InitEngine() {
@@ -153,6 +164,7 @@ func DelObj(obj *ObjNode) error {
 }
 
 func Print() {
+	fmt.Println("Printing engine:")
 	for _, v := range table {
 		v.print()
 	}
