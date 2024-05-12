@@ -1,6 +1,14 @@
 package engine
 
-import "fmt"
+import (
+	"encoding/json"
+	"fmt"
+)
+
+type ObjectJSON struct {
+	name string
+	tags []string
+}
 
 type Object struct {
 	name string
@@ -37,4 +45,15 @@ func (o *Object) addTag(parent *Tag) {
 
 func (o *Object) removeTag(parent *Tag) {
 	o.tags, _ = delItemFromSlice(o.tags, parent)
+}
+
+func (o *Object) MarshalJSON() ([]byte, error) {
+	var tags []string
+	for _, tag := range o.tags {
+		tags = append(tags, tag.name)
+	}
+	return json.Marshal(ObjectJSON{
+		name: o.name,
+		tags: tags,
+	})
 }

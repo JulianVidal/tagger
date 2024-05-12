@@ -8,10 +8,6 @@ import (
 
 func main() {
 	engine.InitEngine()
-	data, err := engine.ToJson()
-	if err != nil {
-		panic(err)
-	}
 
 	bt_tag, err := engine.NewTag("BT", []string{})
 	if err != nil {
@@ -59,6 +55,10 @@ func main() {
 		obj.Print()
 	}
 
+	data, err := engine.ToJson()
+	if err != nil {
+		panic(err)
+	}
 	err = os.WriteFile("engine.json", data, 0644)
 	if err != nil {
 		panic(err)
