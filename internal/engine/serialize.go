@@ -9,25 +9,20 @@ type Engine struct {
 	Objects map[string]*Object
 }
 
-func ToJson() []byte {
+func ToJson() ([]byte, error) {
 	data, err := json.Marshal(Engine{
 		Tags:    tagMap,
 		Objects: objectMap,
 	})
-	if err != nil {
-		panic("Couldn't marshal data")
-	}
 
-	return data
+	return data, err
 }
 
-func FromJson(data []byte) {
+func FromJson(data []byte) error {
 	var eng Engine
 	err := json.Unmarshal(data, &eng)
-	if err != nil {
-		panic("Couldn't unmarshall data")
-	}
 
 	tagMap = eng.Tags
 	objectMap = eng.Objects
+	return err
 }

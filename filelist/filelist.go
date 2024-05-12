@@ -158,6 +158,7 @@ func New() Model {
 	l.Styles.Title = titleStyle
 	l.Styles.PaginationStyle = paginationStyle
 	l.Styles.HelpStyle = helpStyle
+	l.FilterInput.PromptStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("100"))
 
 	return Model{List: l, KeyMap: keys, Help: help.New()}
 }

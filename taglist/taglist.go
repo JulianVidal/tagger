@@ -18,21 +18,21 @@ type KeyMap struct {
 
 func (m Model) ShortHelp() []key.Binding {
 	kb := []key.Binding{m.KeyMap.Chose}
-	kb = append(m.list.ShortHelp(), kb...)
+	kb = append(m.List.ShortHelp(), kb...)
 	return kb
 }
 
 func (m Model) FullHelp() [][]key.Binding {
 	first_row := []key.Binding{m.KeyMap.Chose}
-	first_row = append(m.list.FullHelp()[0], first_row...)
-	kb := append([][]key.Binding{first_row}, m.list.FullHelp()[1:]...)
+	first_row = append(m.List.FullHelp()[0], first_row...)
+	kb := append([][]key.Binding{first_row}, m.List.FullHelp()[1:]...)
 	return kb
 }
 
 var keys = KeyMap{
 	Chose: key.NewBinding(
 		key.WithKeys("enter"),
-		key.WithHelp("enter", "select"),
+		key.WithHelp("enter", "choose"),
 	),
 }
 
@@ -89,7 +89,7 @@ func (d itemDelegate) Render(w io.Writer, m list.Model, index int, listItem list
 func (m Model) GetChosenTags() []string {
 	tags := []string{}
 
-	for _, tag := range m.list.Items() {
+	for _, tag := range m.List.Items() {
 		tag := tag.(tagItem)
 		if tag.selected {
 			tags = append(tags, tag.title)
@@ -100,7 +100,7 @@ func (m Model) GetChosenTags() []string {
 }
 
 type Model struct {
-	list   list.Model
+	List   list.Model
 	KeyMap KeyMap
 	Help   help.Model
 }
@@ -115,22 +115,22 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
-		m.list.SetWidth(msg.Width)
+		m.List.SetWidth(msg.Width)
 		return m, nil
 
 	case tea.KeyMsg:
 		switch {
 		case key.Matches(msg, m.KeyMap.Chose):
-			tagItem := m.list.SelectedItem().(tagItem)
+			tagItem := m.List.SelectedItem().(tagItem)
 			tagItem.selected = !tagItem.selected
 
-			cmd = m.list.SetItem(m.list.Index(), tagItem)
+			cmd = m.List.SetItem(m.List.Index(), tagItem)
 			cmds = append(cmds, cmd)
 		}
 	}
 
-	m.list, cmd = m.list.Update(msg)
-	m.Help.ShowAll = m.list.Help.ShowAll
+	m.List, cmd = m.List.Update(msg)
+	m.Help.ShowAll = m.List.Help.ShowAll
 
 	cmds = append(cmds, cmd)
 	return m, tea.Batch(cmds...)
@@ -138,7 +138,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 func (m Model) View() string {
 	view := ""
-	view += m.list.View()
+	view += m.List.View()
 	return view
 }
 
@@ -152,11 +152,12 @@ func New() Model {
 	l.SetShowStatusBar(true)
 	l.SetFilteringEnabled(true)
 
-	l.Title = "Search your tags"
+	l.Title = "Select tags"
 
 	l.Styles.Title = titleStyle
 	l.Styles.PaginationStyle = paginationStyle
 	l.Styles.HelpStyle = helpStyle
+	l.FilterInput.PromptStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("100"))
 
-	return Model{list: l, KeyMap: keys, Help: help.New()}
+	return Model{List: l, KeyMap: keys, Help: help.New()}
 }

@@ -4,69 +4,60 @@ import "fmt"
 
 type Tag struct {
 	name     string
-	children []string
-	parents  []string
-	objects  []string
+	children []*Tag
+	parents  []*Tag
+	objects  []*Object
 }
 
-func (tag *Tag) print() {
-	fmt.Println(tag)
-}
-
-func (tag *Tag) String() string {
-	str := fmt.Sprintf("----------------------------------\n")
-	str += fmt.Sprintf("Tag: %s\n", tag.name)
-	for _, objectName := range tag.objects {
-		obj := objectMap[objectName]
-		str += fmt.Sprintf("%s\n", obj)
+func NewTag(name string, parent_names []string) (*Tag, error) {
+	var parents []*Tag
+	for _, parent_name := range parent_names {
+		parent, exists := tagMap[parent_name]
+		if !exists {
+			return nil, fmt.Errorf("Tag parent '%s' not found.\n", parent)
+		}
+		parents = append(parents, parent)
 	}
-	str += fmt.Sprintf("----------------------------------\n")
+
+	return &Tag{
+		name:    name,
+		parents: parents,
+	}, nil
+}
+
+func (t Tag) Print() {
+	fmt.Println(t)
+}
+
+func (t Tag) String() string {
+	var str string
+	str += fmt.Sprintf("Tag: %s\n", t.name)
+	for _, object := range t.objects {
+		str += fmt.Sprintf("\t%s\n", object)
+	}
 	return str
 }
 
-func AddTag(name string, parents []string) error {
-	if _, exist := tagMap[name]; exist {
-		return fmt.Errorf("Tag '%s' already exists", name)
-	}
-
-	node := &Tag{
-		name: name,
-	}
-
-	for _, parent_name := range parents {
-		if _, exist := tagMap[parent_name]; !exist {
-			return fmt.Errorf("Parent tag '%s' not found", parent_name)
-		}
-	}
-
-	for _, parent_name := range parents {
-		parent, _ := tagMap[parent_name]
-		parent.children = append(parent.children, name)
-		node.parents = append(node.parents, parent.name)
-	}
-
-	tagMap[name] = node
-
-	return nil
+func (t *Tag) addParent(tag *Tag) {
+	t.parents = append(t.parents, tag)
 }
 
-func DelTag(name string) error {
-	tag, exist := tagMap[name]
-	if !exist {
-		return fmt.Errorf("Tag not found in engine: %s", name)
-	}
+func (t *Tag) removeParent(tag *Tag) {
+	t.parents, _ = delItemFromSlice(t.parents, tag)
+}
 
-	for _, childName := range tag.children {
-		child := tagMap[childName]
-		child.parents, _ = delItemFromSlice(child.parents, tag.name)
-	}
+func (t *Tag) addChild(tag *Tag) {
+	t.children = append(t.children, tag)
+}
 
-	for _, parentName := range tag.parents {
-		parent := tagMap[parentName]
-		parent.children, _ = delItemFromSlice(parent.children, tag.name)
-	}
+func (t *Tag) removeChild(tag *Tag) {
+	t.children, _ = delItemFromSlice(t.children, tag)
+}
 
-	tagMap[name] = nil
+func (t *Tag) addObject(object *Object) {
+	t.objects = append(t.objects, object)
+}
 
-	return nil
+func (t *Tag) removeObject(object *Object) {
+	t.objects, _ = delItemFromSlice(t.objects, object)
 }

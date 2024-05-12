@@ -2,6 +2,7 @@ package engine
 
 import (
 	"fmt"
+	"os"
 )
 
 // TODO: Create a TUI that shows all the files, search with query or filename, like locate and everything
@@ -13,22 +14,120 @@ var tagMap map[string]*Tag
 var objectMap map[string]*Object
 
 func InitEngine() {
-	tagMap = make(map[string]*Tag)
-	objectMap = make(map[string]*Object)
+	data, err := os.ReadFile("engine.json")
+	if err != nil {
+		tagMap = make(map[string]*Tag)
+		objectMap = make(map[string]*Object)
+		return
+	}
+
+	err = FromJson(data)
+	if err != nil {
+		panic(err)
+	}
 }
 
 func Print() {
 	fmt.Println("Printing engine:")
 	for _, v := range tagMap {
-		v.print()
+		v.Print()
 	}
 }
 
-func getAllObjectsFromTag(tagName string) map[string]string {
-	results := make(map[string]string)
-	tag := tagMap[tagName]
+func FindTag(name string) (Tag, bool) {
+	tag, exist := tagMap[name]
+	return *tag, exist
+}
+
+func FindObject(name string) (Object, bool) {
+	object, exist := objectMap[name]
+	return *object, exist
+}
+
+func Tags() []string {
+	return mapKeys(tagMap)
+}
+
+func Objects() []string {
+	return mapKeys(objectMap)
+}
+
+func AddTag(tag *Tag) error {
+	if _, exist := tagMap[tag.name]; exist {
+		return fmt.Errorf("Tag '%s' already exists", tag.name)
+	}
+
+	for _, parent := range tag.parents {
+		if _, exist := tagMap[parent.name]; !exist {
+			return fmt.Errorf("Parent tag '%s' not found", parent)
+		}
+	}
+
+	for _, parent := range tag.parents {
+		parent.addChild(tag)
+	}
+
+	tagMap[tag.name] = tag
+
+	return nil
+}
+
+func DelTag(tag *Tag) error {
+	if _, exist := tagMap[tag.name]; !exist {
+		return fmt.Errorf("Tag '%s' not found", tag.name)
+	}
+
+	for _, child := range tag.children {
+		child.removeParent(tag)
+	}
+
+	for _, parent := range tag.parents {
+		parent.removeChild(tag)
+	}
+
+	delete(tagMap, tag.name)
+
+	return nil
+}
+
+func AddObject(object *Object) error {
+	if _, exist := objectMap[object.name]; exist {
+		return fmt.Errorf("Object '%s' already exists", object.name)
+	}
+
+	for _, tag := range object.tags {
+		if _, exist := tagMap[tag.name]; !exist {
+			return fmt.Errorf("Tag '%s' doesn't exist in engine", tag.name)
+		}
+	}
+
+	for _, tag := range object.tags {
+		tag.addObject(object)
+	}
+
+	objectMap[object.name] = object
+
+	return nil
+}
+
+func DeleteObject(object *Object) error {
+	if _, exist := objectMap[object.name]; !exist {
+		return fmt.Errorf("Object %s not found", object.name)
+	}
+
+	for _, parent := range object.tags {
+		parent.removeObject(object)
+	}
+
+	delete(objectMap, object.name)
+
+	return nil
+}
+
+func getAllObjectsFromTag(tag *Tag) map[string]*Object {
+	results := make(map[string]*Object)
 	for _, object := range tag.objects {
-		results[object] = object
+		results[object.name] = object
 	}
 
 	for _, childTag := range tag.children {
@@ -38,23 +137,22 @@ func getAllObjectsFromTag(tagName string) map[string]string {
 	return results
 }
 
-func Query(tags []string) ([]*Object, error) {
-	results := make(map[string]string)
+func Query(tags ...*Tag) ([]Object, error) {
+	results := make(map[string]*Object)
 
-	for _, tagName := range tags {
-		if _, exist := tagMap[tagName]; !exist {
-			return nil, fmt.Errorf("Tag '%s' not found", tagName)
+	for _, tag := range tags {
+		if _, exist := tagMap[tag.name]; !exist {
+			return nil, fmt.Errorf("Tag '%s' not found", tag)
 		}
 	}
 
-	for _, tagName := range tags {
-		mapUnion(results, getAllObjectsFromTag(tagName))
+	for _, tag := range tags {
+		mapUnion(results, getAllObjectsFromTag(tag))
 	}
 
-	var resultList []*Object
-	for _, objectName := range results {
-		obj := objectMap[objectName]
-		resultList = append(resultList, obj)
+	var resultList []Object
+	for _, object := range results {
+		resultList = append(resultList, *object)
 	}
 
 	return resultList, nil

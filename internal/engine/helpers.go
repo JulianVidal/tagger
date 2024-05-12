@@ -24,3 +24,19 @@ func mapUnion[M map[K]V, K comparable, V comparable](a M, b M) {
 		a[k] = v
 	}
 }
+
+func mapKeys[M map[K]V, K comparable, V any](m M) []K {
+	ks := make([]K, 0, len(m))
+	for k := range m {
+		ks = append(ks, k)
+	}
+	return ks
+}
+
+func mapValues[M map[K]V, K comparable, V any](m M) []V {
+	vs := make([]V, 0, len(m))
+	for _, v := range m {
+		vs = append(vs, v)
+	}
+	return vs
+}
