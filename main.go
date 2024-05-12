@@ -7,46 +7,46 @@ import (
 )
 
 func main() {
-	engine.InitEngine()
+	engine.Init()
 
-	bt_tag, err := engine.NewTag("BT", []string{})
-	if err != nil {
-		panic(err)
-	}
-	err = engine.AddTag(bt_tag)
-	if err != nil {
-		panic(err)
-	}
-
-	sat_tag, err := engine.NewTag("Sat", []string{"BT"})
-	if err != nil {
-		panic(err)
-	}
-	err = engine.AddTag(sat_tag)
-	if err != nil {
-		panic(err)
-	}
-
-	sat_obj, err := engine.NewObject("/home/julian/temp/satshelf.txt", []string{"Sat"})
-	if err != nil {
-		panic(err)
-	}
-	err = engine.AddObject(sat_obj)
-	if err != nil {
-		panic(err)
-	}
-
-	start_obj, err := engine.NewObject("/home/julian/temp/starter.txt", []string{"BT"})
-	if err != nil {
-		panic(err)
-	}
-	err = engine.AddObject(start_obj)
-	if err != nil {
-		panic(err)
-	}
+	// bt_tag, err := engine.NewTag("BT")
+	// if err != nil {
+	// 	panic(err)
+	// }
+	//
+	// sat_tag, err := engine.NewTag("Sat")
+	// if err != nil {
+	// 	panic(err)
+	// }
+	// err = sat_tag.AddTags(bt_tag)
+	// if err != nil {
+	// 	panic(err)
+	// }
+	//
+	// sat_obj, err := engine.NewObject("/home/julian/temp/satshelf.txt")
+	// if err != nil {
+	// 	panic(err)
+	// }
+	// err = sat_obj.AddTags(sat_tag)
+	// if err != nil {
+	// 	panic(err)
+	// }
+	//
+	// start_obj, err := engine.NewObject("/home/julian/temp/starter.txt")
+	// if err != nil {
+	// 	panic(err)
+	// }
+	// err = start_obj.AddTags(bt_tag)
+	// if err != nil {
+	// 	panic(err)
+	// }
 
 	engine.Print()
 
+	bt_tag, exists := engine.FindTag("BT")
+	if !exists {
+		panic("Tag doesn't exist")
+	}
 	objs, err := engine.Query(bt_tag)
 	if err != nil {
 		panic(err)

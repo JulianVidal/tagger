@@ -1,13 +1,12 @@
 package engine
 
 import (
-	"encoding/json"
 	"fmt"
 )
 
 type ObjectJSON struct {
-	name string
-	tags []string
+	Name string
+	Tags []string
 }
 
 type Object struct {
@@ -15,20 +14,14 @@ type Object struct {
 	tags []*Tag
 }
 
-func NewObject(name string, tag_names []string) (*Object, error) {
-	var parents []*Tag
-	for _, tag_name := range tag_names {
-		tag, exists := tagMap[tag_name]
-		if !exists {
-			return nil, fmt.Errorf("Tag '%s' not found.\n", tag)
-		}
-		parents = append(parents, tag)
+func NewObject(name string) (*Object, error) {
+	if _, exists := objectMap[name]; exists {
+		return nil, fmt.Errorf("Object '%s' already exists", name)
 	}
-
-	return &Object{
+	objectMap[name] = &Object{
 		name: name,
-		tags: parents,
-	}, nil
+	}
+	return objectMap[name], nil
 }
 
 func (o *Object) Print() {
@@ -36,24 +29,51 @@ func (o *Object) Print() {
 }
 
 func (o *Object) String() string {
-	return fmt.Sprintf("Object:%s", o.name)
+	var t string
+	for _, tag := range o.tags {
+		t += " " + tag.name
+	}
+	return fmt.Sprintf("Object:%s, Tags: %v", o.name, t)
 }
 
-func (o *Object) addTag(parent *Tag) {
-	o.tags = append(o.tags, parent)
+func (o *Object) AddTags(tags ...*Tag) error {
+	for _, tag := range tags {
+		if _, exists := tagMap[tag.name]; !exists {
+			return fmt.Errorf("Tag '%s' doesn't exist", tag.name)
+		}
+	}
+
+	o.tags = append(o.tags, tags...)
+	for _, tag := range tags {
+		tag.objects = append(tag.objects, o)
+	}
+
+	return nil
 }
 
-func (o *Object) removeTag(parent *Tag) {
-	o.tags, _ = delItemFromSlice(o.tags, parent)
+func (o *Object) RemoveTag(tags ...*Tag) {
+	o.tags, _ = delItemsFromSlice(o.tags, tags...)
+	for _, tag := range tags {
+		tag.objects, _ = delItemsFromSlice(tag.objects, o)
+	}
 }
 
-func (o *Object) MarshalJSON() ([]byte, error) {
+func (o *Object) Delete() {
+
+	for _, tag := range o.tags {
+		tag.objects, _ = delItemsFromSlice(tag.objects, o)
+	}
+
+	delete(objectMap, o.name)
+}
+
+func (o *Object) json() ObjectJSON {
 	var tags []string
 	for _, tag := range o.tags {
 		tags = append(tags, tag.name)
 	}
-	return json.Marshal(ObjectJSON{
-		name: o.name,
-		tags: tags,
-	})
+	return ObjectJSON{
+		Name: o.name,
+		Tags: tags,
+	}
 }

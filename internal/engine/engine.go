@@ -13,11 +13,10 @@ import (
 var tagMap map[string]*Tag
 var objectMap map[string]*Object
 
-func InitEngine() {
+func Init() {
 	data, err := os.ReadFile("engine.json")
 	if err != nil {
-		tagMap = make(map[string]*Tag)
-		objectMap = make(map[string]*Object)
+		New()
 		return
 	}
 
@@ -27,6 +26,11 @@ func InitEngine() {
 	}
 }
 
+func New() {
+	tagMap = make(map[string]*Tag)
+	objectMap = make(map[string]*Object)
+}
+
 func Print() {
 	fmt.Println("Printing engine:")
 	for _, v := range tagMap {
@@ -34,9 +38,9 @@ func Print() {
 	}
 }
 
-func FindTag(name string) (Tag, bool) {
+func FindTag(name string) (*Tag, bool) {
 	tag, exist := tagMap[name]
-	return *tag, exist
+	return tag, exist
 }
 
 func FindObject(name string) (Object, bool) {
@@ -50,78 +54,6 @@ func Tags() []string {
 
 func Objects() []string {
 	return mapKeys(objectMap)
-}
-
-func AddTag(tag *Tag) error {
-	if _, exist := tagMap[tag.name]; exist {
-		return fmt.Errorf("Tag '%s' already exists", tag.name)
-	}
-
-	for _, parent := range tag.parents {
-		if _, exist := tagMap[parent.name]; !exist {
-			return fmt.Errorf("Parent tag '%s' not found", parent)
-		}
-	}
-
-	for _, parent := range tag.parents {
-		parent.addChild(tag)
-	}
-
-	tagMap[tag.name] = tag
-
-	return nil
-}
-
-func DelTag(tag *Tag) error {
-	if _, exist := tagMap[tag.name]; !exist {
-		return fmt.Errorf("Tag '%s' not found", tag.name)
-	}
-
-	for _, child := range tag.children {
-		child.removeParent(tag)
-	}
-
-	for _, parent := range tag.parents {
-		parent.removeChild(tag)
-	}
-
-	delete(tagMap, tag.name)
-
-	return nil
-}
-
-func AddObject(object *Object) error {
-	if _, exist := objectMap[object.name]; exist {
-		return fmt.Errorf("Object '%s' already exists", object.name)
-	}
-
-	for _, tag := range object.tags {
-		if _, exist := tagMap[tag.name]; !exist {
-			return fmt.Errorf("Tag '%s' doesn't exist in engine", tag.name)
-		}
-	}
-
-	for _, tag := range object.tags {
-		tag.addObject(object)
-	}
-
-	objectMap[object.name] = object
-
-	return nil
-}
-
-func DeleteObject(object *Object) error {
-	if _, exist := objectMap[object.name]; !exist {
-		return fmt.Errorf("Object %s not found", object.name)
-	}
-
-	for _, parent := range object.tags {
-		parent.removeObject(object)
-	}
-
-	delete(objectMap, object.name)
-
-	return nil
 }
 
 func getAllObjectsFromTag(tag *Tag) map[string]*Object {

@@ -1,6 +1,13 @@
 package engine
 
-import "fmt"
+import (
+	"fmt"
+)
+
+type TagJSON struct {
+	Name    string
+	Parents []string
+}
 
 type Tag struct {
 	name     string
@@ -9,20 +16,14 @@ type Tag struct {
 	objects  []*Object
 }
 
-func NewTag(name string, parent_names []string) (*Tag, error) {
-	var parents []*Tag
-	for _, parent_name := range parent_names {
-		parent, exists := tagMap[parent_name]
-		if !exists {
-			return nil, fmt.Errorf("Tag parent '%s' not found.\n", parent)
-		}
-		parents = append(parents, parent)
+func NewTag(name string) (*Tag, error) {
+	if _, exists := tagMap[name]; exists {
+		return nil, fmt.Errorf("Tag '%s' already exists", name)
 	}
-
-	return &Tag{
-		name:    name,
-		parents: parents,
-	}, nil
+	tagMap[name] = &Tag{
+		name: name,
+	}
+	return tagMap[name], nil
 }
 
 func (t Tag) Print() {
@@ -38,26 +39,48 @@ func (t Tag) String() string {
 	return str
 }
 
-func (t *Tag) addParent(tag *Tag) {
-	t.parents = append(t.parents, tag)
+func (t *Tag) AddTags(tags ...*Tag) error {
+	for _, tag := range tags {
+		if _, exists := tagMap[tag.name]; !exists {
+			return fmt.Errorf("Tag '%s' doesn't exist", tag.name)
+		}
+	}
+
+	t.parents = append(t.parents, tags...)
+	for _, tag := range tags {
+		tag.children = append(tag.children, t)
+	}
+
+	return nil
 }
 
-func (t *Tag) removeParent(tag *Tag) {
-	t.parents, _ = delItemFromSlice(t.parents, tag)
+func (t *Tag) RemoveTags(tags ...*Tag) {
+	t.parents, _ = delItemsFromSlice(t.parents, tags...)
+	for _, tag := range tags {
+		tag.children, _ = delItemsFromSlice(tag.children, t)
+	}
 }
 
-func (t *Tag) addChild(tag *Tag) {
-	t.children = append(t.children, tag)
+func (t *Tag) Delete() {
+
+	for _, parent := range t.parents {
+		parent.children, _ = delItemsFromSlice(parent.children, t)
+	}
+
+	for _, child := range t.children {
+		child.parents, _ = delItemsFromSlice(child.parents, t)
+	}
+
+	delete(tagMap, t.name)
 }
 
-func (t *Tag) removeChild(tag *Tag) {
-	t.children, _ = delItemFromSlice(t.children, tag)
-}
-
-func (t *Tag) addObject(object *Object) {
-	t.objects = append(t.objects, object)
-}
-
-func (t *Tag) removeObject(object *Object) {
-	t.objects, _ = delItemFromSlice(t.objects, object)
+func (t *Tag) json() TagJSON {
+	var parents []string
+	for _, parent := range t.parents {
+		parents = append(parents, parent.name)
+	}
+	return TagJSON{
+		Name:    t.name,
+		Parents: parents,
+	}
 }

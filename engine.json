@@ -1,1 +1,1 @@
-{"Tags":{"BT":{},"Sat":{}},"Objects":{"/home/julian/temp/satshelf.txt":{},"/home/julian/temp/starter.txt":{}}}
+{"Tags":{"BT":{"Name":"BT","Parents":null},"Sat":{"Name":"Sat","Parents":["BT"]}},"Objects":{"/home/julian/temp/satshelf.txt":{"Name":"/home/julian/temp/satshelf.txt","Tags":["Sat"]},"/home/julian/temp/starter.txt":{"Name":"/home/julian/temp/starter.txt","Tags":["BT"]}}}
