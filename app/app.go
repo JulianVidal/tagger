@@ -1,10 +1,10 @@
-package main
+package app
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/JulianVidal/tagger/filelist"
+	"github.com/JulianVidal/tagger/internal/engine"
 	"github.com/JulianVidal/tagger/taglist"
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
@@ -71,7 +71,16 @@ type Model struct {
 }
 
 func (m Model) Init() tea.Cmd {
+	engine.Init()
 	return nil
+}
+
+func (m *Model) AddTags(tags []string) tea.Cmd {
+	var tagItems []list.Item
+	for _, tag := range tags {
+		tagItems = append(tagItems, taglist.TagItem{Title: tag})
+	}
+	return m.tagList.List.SetItems(tagItems)
 }
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -117,14 +126,8 @@ func (m Model) View() string {
 	return lipgloss.JoinVertical(lipgloss.Left, chosenTags, focusedList, helpView)
 }
 
-func main() {
-
+func New() Model {
 	fl := filelist.New()
 	tl := taglist.New()
-	m := Model{fileList: fl, KeyMap: keys, help: help.New(), tagList: tl}
-
-	if _, err := tea.NewProgram(m).Run(); err != nil {
-		fmt.Println("Error running program:", err)
-		os.Exit(1)
-	}
+	return Model{fileList: fl, KeyMap: keys, help: help.New(), tagList: tl}
 }

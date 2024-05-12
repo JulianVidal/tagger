@@ -48,14 +48,14 @@ var (
 	quitTextStyle     = lipgloss.NewStyle().Margin(1, 0, 2, 4)
 )
 
-type tagItem struct {
-	title    string
-	selected bool
+type TagItem struct {
+	Title    string
+	Selected bool
 }
 
-func (i tagItem) FilterValue() string { return i.title }
-func (item tagItem) String() string {
-	return fmt.Sprintf("%s", item.title)
+func (i TagItem) FilterValue() string { return i.Title }
+func (item TagItem) String() string {
+	return fmt.Sprintf("%s", item.Title)
 }
 
 type itemDelegate struct{}
@@ -64,12 +64,12 @@ func (d itemDelegate) Height() int                             { return 1 }
 func (d itemDelegate) Spacing() int                            { return 0 }
 func (d itemDelegate) Update(_ tea.Msg, _ *list.Model) tea.Cmd { return nil }
 func (d itemDelegate) Render(w io.Writer, m list.Model, index int, listItem list.Item) {
-	i, ok := listItem.(tagItem)
+	i, ok := listItem.(TagItem)
 	if !ok {
 		return
 	}
 	str := ""
-	if i.selected {
+	if i.Selected {
 		str = fmt.Sprintf("[X] %s", i)
 	} else {
 		str = fmt.Sprintf("[ ] %s", i)
@@ -90,13 +90,21 @@ func (m Model) GetChosenTags() []string {
 	tags := []string{}
 
 	for _, tag := range m.List.Items() {
-		tag := tag.(tagItem)
-		if tag.selected {
-			tags = append(tags, tag.title)
+		tag := tag.(TagItem)
+		if tag.Selected {
+			tags = append(tags, tag.Title)
 		}
 	}
 
 	return tags
+}
+
+func (m Model) SetTags(tags []string) {
+	var tagItems []list.Item
+	for _, tag := range tags {
+		tagItems = append(tagItems, TagItem{Title: tag})
+	}
+	m.List.SetItems(tagItems)
 }
 
 type Model struct {
@@ -121,8 +129,8 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch {
 		case key.Matches(msg, m.KeyMap.Chose):
-			tagItem := m.List.SelectedItem().(tagItem)
-			tagItem.selected = !tagItem.selected
+			tagItem := m.List.SelectedItem().(TagItem)
+			tagItem.Selected = !tagItem.Selected
 
 			cmd = m.List.SetItem(m.List.Index(), tagItem)
 			cmds = append(cmds, cmd)
@@ -143,10 +151,9 @@ func (m Model) View() string {
 }
 
 func New() Model {
-	items := []list.Item{tagItem{title: "BT"}, tagItem{title: "SAT"}}
 	const defaultWidth = 20
 
-	l := list.New(items, itemDelegate{}, defaultWidth, listHeight)
+	l := list.New([]list.Item{}, itemDelegate{}, defaultWidth, listHeight)
 
 	l.SetShowHelp(false)
 	l.SetShowStatusBar(true)
