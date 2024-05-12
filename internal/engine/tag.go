@@ -74,6 +74,12 @@ func (t *Tag) Delete() {
 	delete(tagMap, t.name)
 }
 
+func (t *Tag) SetName(name string) {
+	delete(tagMap, t.name)
+	t.name = name
+	tagMap[name] = t
+}
+
 func (t *Tag) json() TagJSON {
 	var parents []string
 	for _, parent := range t.parents {

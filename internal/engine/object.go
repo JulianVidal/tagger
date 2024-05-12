@@ -67,6 +67,12 @@ func (o *Object) Delete() {
 	delete(objectMap, o.name)
 }
 
+func (o *Object) SetName(name string) {
+	delete(objectMap, o.name)
+	o.name = name
+	objectMap[name] = o
+}
+
 func (o *Object) json() ObjectJSON {
 	var tags []string
 	for _, tag := range o.tags {
