@@ -26,17 +26,21 @@ func NewTag(name string) (*Tag, error) {
 	return tagMap[name], nil
 }
 
-func (t Tag) Print() {
+func (t *Tag) Print() {
 	fmt.Println(t)
 }
 
-func (t Tag) String() string {
+func (t *Tag) String() string {
 	var str string
 	str += fmt.Sprintf("Tag: %s\n", t.name)
 	for _, object := range t.objects {
 		str += fmt.Sprintf("\t%s\n", object)
 	}
 	return str
+}
+
+func (t *Tag) Name() string {
+	return t.name
 }
 
 func (t *Tag) AddTags(tags ...*Tag) error {

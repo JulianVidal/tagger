@@ -48,13 +48,13 @@ var (
 	quitTextStyle     = lipgloss.NewStyle().Margin(1, 0, 2, 4)
 )
 
-type TagItem struct {
+type Item struct {
 	Title    string
 	Selected bool
 }
 
-func (i TagItem) FilterValue() string { return i.Title }
-func (item TagItem) String() string {
+func (i Item) FilterValue() string { return i.Title }
+func (item Item) String() string {
 	return fmt.Sprintf("%s", item.Title)
 }
 
@@ -64,7 +64,7 @@ func (d itemDelegate) Height() int                             { return 1 }
 func (d itemDelegate) Spacing() int                            { return 0 }
 func (d itemDelegate) Update(_ tea.Msg, _ *list.Model) tea.Cmd { return nil }
 func (d itemDelegate) Render(w io.Writer, m list.Model, index int, listItem list.Item) {
-	i, ok := listItem.(TagItem)
+	i, ok := listItem.(Item)
 	if !ok {
 		return
 	}
@@ -90,7 +90,7 @@ func (m Model) GetChosenTags() []string {
 	tags := []string{}
 
 	for _, tag := range m.List.Items() {
-		tag := tag.(TagItem)
+		tag := tag.(Item)
 		if tag.Selected {
 			tags = append(tags, tag.Title)
 		}
@@ -102,7 +102,7 @@ func (m Model) GetChosenTags() []string {
 func (m Model) SetTags(tags []string) {
 	var tagItems []list.Item
 	for _, tag := range tags {
-		tagItems = append(tagItems, TagItem{Title: tag})
+		tagItems = append(tagItems, Item{Title: tag})
 	}
 	m.List.SetItems(tagItems)
 }
@@ -129,7 +129,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch {
 		case key.Matches(msg, m.KeyMap.Chose):
-			tagItem := m.List.SelectedItem().(TagItem)
+			tagItem := m.List.SelectedItem().(Item)
 			tagItem.Selected = !tagItem.Selected
 
 			cmd = m.List.SetItem(m.List.Index(), tagItem)

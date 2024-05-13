@@ -36,6 +36,14 @@ func (o *Object) String() string {
 	return fmt.Sprintf("Object:%s, Tags: %v", o.name, t)
 }
 
+func (o *Object) Name() string {
+	return o.name
+}
+
+func (o *Object) Tags() []*Tag {
+	return o.tags
+}
+
 func (o *Object) AddTags(tags ...*Tag) error {
 	for _, tag := range tags {
 		if _, exists := tagMap[tag.name]; !exists {

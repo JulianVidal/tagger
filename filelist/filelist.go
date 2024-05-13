@@ -49,11 +49,11 @@ var (
 	quitTextStyle     = lipgloss.NewStyle().Margin(1, 0, 2, 4)
 )
 
-type item struct {
-	title string
+type Item struct {
+	Title string
 }
 
-func (i item) FilterValue() string { return i.title }
+func (i Item) FilterValue() string { return i.Title }
 
 type itemDelegate struct{}
 
@@ -61,7 +61,7 @@ func (d itemDelegate) Height() int                             { return 1 }
 func (d itemDelegate) Spacing() int                            { return 0 }
 func (d itemDelegate) Update(_ tea.Msg, _ *list.Model) tea.Cmd { return nil }
 func (d itemDelegate) Render(w io.Writer, m list.Model, index int, listItem list.Item) {
-	i, ok := listItem.(item)
+	i, ok := listItem.(Item)
 	if !ok {
 		return
 	}
@@ -78,14 +78,16 @@ func (d itemDelegate) Render(w io.Writer, m list.Model, index int, listItem list
 	fmt.Fprint(w, fn(str))
 }
 
-func (item item) String() string {
-	return fmt.Sprintf("%s", item.title)
+func (item Item) String() string {
+	return fmt.Sprintf("%s", item.Title)
 }
 
 type Model struct {
-	List   list.Model
-	KeyMap KeyMap
-	Help   help.Model
+	List      list.Model
+	KeyMap    KeyMap
+	Help      help.Model
+	Directory string
+	Files     []list.Item
 }
 
 func (m Model) Init() tea.Cmd {
@@ -119,16 +121,16 @@ func (m Model) View() string {
 	return view
 }
 
-func crawlDir(dir string) []string {
-	var filepaths []string
+func CrawlDir(dir string) []list.Item {
+	var files []string
 
 	err := filepath.Walk(dir,
-		func(path string, info os.FileInfo, err error) error {
+		func(file string, info os.FileInfo, err error) error {
 			if err != nil {
 				return err
 			}
 			if !info.IsDir() {
-				filepaths = append(filepaths, path)
+				files = append(files, file)
 			}
 			return nil
 		},
@@ -137,17 +139,19 @@ func crawlDir(dir string) []string {
 		panic(err)
 	}
 
-	return filepaths
+	var items []list.Item
+	for _, path := range files {
+		items = append(items, Item{
+			Title: path,
+		})
+	}
+
+	return items
 }
 
 func New() Model {
 	dir := os.Args[1]
-	items := []list.Item{}
-	for _, path := range crawlDir(dir) {
-		items = append(items, item{
-			title: path,
-		})
-	}
+	items := CrawlDir(dir)
 
 	const defaultWidth = 20
 	l := list.New(items, itemDelegate{}, defaultWidth, listHeight)
@@ -160,5 +164,5 @@ func New() Model {
 	l.Styles.HelpStyle = helpStyle
 	l.Styles.FilterPrompt = lipgloss.NewStyle().Foreground(lipgloss.Color("100"))
 
-	return Model{List: l, KeyMap: keys, Help: help.New()}
+	return Model{List: l, KeyMap: keys, Help: help.New(), Directory: dir, Files: items}
 }

@@ -62,6 +62,18 @@ var keys = KeyMap{
 	),
 }
 
+func sliceEq[S []K, K comparable](a S, b S) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
+}
+
 type Model struct {
 	fileList filelist.Model
 	KeyMap   KeyMap
@@ -71,16 +83,44 @@ type Model struct {
 }
 
 func (m Model) Init() tea.Cmd {
-	engine.Init()
 	return nil
 }
 
-func (m *Model) AddTags(tags []string) tea.Cmd {
+func (m *Model) SetTags(tags []string) tea.Cmd {
 	var tagItems []list.Item
 	for _, tag := range tags {
-		tagItems = append(tagItems, taglist.TagItem{Title: tag})
+		tagItems = append(tagItems, taglist.Item{Title: tag})
 	}
 	return m.tagList.List.SetItems(tagItems)
+}
+
+func (m *Model) SetFiles(files []string) tea.Cmd {
+	var fileItems []list.Item
+	for _, file := range files {
+		fileItems = append(fileItems, filelist.Item{Title: file})
+	}
+	return m.fileList.List.SetItems(fileItems)
+}
+
+func queryEngine(tagNames []string) []string {
+	var tags []*engine.Tag
+	for _, tagName := range tagNames {
+		tag, exists := engine.FindTag(tagName)
+		if !exists {
+			panic("Couldn't find tag in engine")
+		}
+		tags = append(tags, tag)
+	}
+	objects, err := engine.Query(tags...)
+	if err != nil {
+		panic(err)
+	}
+
+	var files []string
+	for _, object := range objects {
+		files = append(files, object.String())
+	}
+	return files
 }
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -94,6 +134,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.fileList.List.FilterState() != list.Filtering &&
 				m.tagList.List.FilterState() != list.Filtering {
 				m.tagFocus = !m.tagFocus
+				if !m.tagFocus {
+					chosenTags := m.tagList.GetChosenTags()
+					if len(chosenTags) != 0 {
+						m.SetFiles(queryEngine(chosenTags))
+						break
+					}
+					m.fileList.List.SetItems(m.fileList.Files)
+				}
 			}
 		}
 	}
