@@ -59,7 +59,7 @@ func Objects() []string {
 func getAllObjectsFromTag(tag *Tag) map[string]*Object {
 	results := make(map[string]*Object)
 	for _, object := range tag.objects {
-		results[object.name] = object
+		results[object.Name()] = object
 	}
 
 	for _, childTag := range tag.children {

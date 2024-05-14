@@ -13,24 +13,24 @@ import (
 )
 
 type KeyMap struct {
-	Chose key.Binding
+	Chosen key.Binding
 }
 
 func (m Model) ShortHelp() []key.Binding {
-	kb := []key.Binding{m.KeyMap.Chose}
+	kb := []key.Binding{m.KeyMap.Chosen}
 	kb = append(m.List.ShortHelp(), kb...)
 	return kb
 }
 
 func (m Model) FullHelp() [][]key.Binding {
-	first_row := []key.Binding{m.KeyMap.Chose}
+	first_row := []key.Binding{m.KeyMap.Chosen}
 	first_row = append(m.List.FullHelp()[0], first_row...)
 	kb := append([][]key.Binding{first_row}, m.List.FullHelp()[1:]...)
 	return kb
 }
 
 var keys = KeyMap{
-	Chose: key.NewBinding(
+	Chosen: key.NewBinding(
 		key.WithKeys("enter"),
 		key.WithHelp("enter", "choose"),
 	),
@@ -99,12 +99,35 @@ func (m Model) GetChosenTags() []string {
 	return tags
 }
 
-func (m Model) SetTags(tags []string) {
-	var tagItems []list.Item
+func (m *Model) SetTags(tags ...string) tea.Cmd {
+	var items []list.Item
 	for _, tag := range tags {
-		tagItems = append(tagItems, Item{Title: tag})
+		items = append(items, Item{Title: tag})
 	}
-	m.List.SetItems(tagItems)
+	return m.List.SetItems(items)
+}
+
+func (m *Model) SetChosen(tags ...string) {
+	m.clearChosen()
+	for i, item := range m.List.Items() {
+		item := item.(Item)
+		for _, tag := range tags {
+			if item.Title == tag {
+				item.Selected = true
+				m.List.SetItem(i, item)
+			}
+		}
+	}
+}
+
+func (m *Model) clearChosen() {
+	for i, tag := range m.List.Items() {
+		tag := tag.(Item)
+		if tag.Selected {
+			tag.Selected = false
+			m.List.SetItem(i, tag)
+		}
+	}
 }
 
 type Model struct {
@@ -128,7 +151,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 	case tea.KeyMsg:
 		switch {
-		case key.Matches(msg, m.KeyMap.Chose):
+		case key.Matches(msg, m.KeyMap.Chosen):
 			tagItem := m.List.SelectedItem().(Item)
 			tagItem.Selected = !tagItem.Selected
 
@@ -153,13 +176,13 @@ func (m Model) View() string {
 func New() Model {
 	const defaultWidth = 20
 
-	l := list.New([]list.Item{}, itemDelegate{}, defaultWidth, listHeight)
+	l := list.New([]list.Item{Item{Title: "test"}}, itemDelegate{}, defaultWidth, listHeight)
 
 	l.SetShowHelp(false)
 	l.SetShowStatusBar(true)
 	l.SetFilteringEnabled(true)
 
-	l.Title = "Select tags"
+	l.Title = "Filter with tags"
 
 	l.Styles.Title = titleStyle
 	l.Styles.PaginationStyle = paginationStyle

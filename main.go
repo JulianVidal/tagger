@@ -12,7 +12,7 @@ import (
 func main() {
 	m := app.New()
 	engine.Init()
-	m.SetTags(engine.Tags())
+	m.SetTags(engine.Tags()...)
 	if _, err := tea.NewProgram(m).Run(); err != nil {
 		fmt.Println("Error running program:", err)
 		os.Exit(1)

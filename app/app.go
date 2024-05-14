@@ -17,7 +17,7 @@ import (
 // TODO: Current plan:
 //			* Separate the file list and tag list into different files
 //			* Add engine support
-//			* Separate page for adding and removing tags
+//			* For each item create a list of tags it can select from
 
 var (
 	helpStyle       = list.DefaultStyles().HelpStyle.PaddingLeft(4).PaddingBottom(1)
@@ -86,12 +86,11 @@ func (m Model) Init() tea.Cmd {
 	return nil
 }
 
-func (m *Model) SetTags(tags []string) tea.Cmd {
-	var tagItems []list.Item
-	for _, tag := range tags {
-		tagItems = append(tagItems, taglist.Item{Title: tag})
-	}
-	return m.tagList.List.SetItems(tagItems)
+func (m *Model) SetTags(tags ...string) tea.Cmd {
+	return tea.Batch(
+		m.tagList.SetTags(tags...),
+		m.fileList.TagList.SetTags(tags...),
+	)
 }
 
 func (m *Model) SetFiles(files []string) tea.Cmd {
