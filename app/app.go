@@ -3,8 +3,8 @@ package app
 import (
 	"fmt"
 
+	"github.com/JulianVidal/tagger/app/handler"
 	"github.com/JulianVidal/tagger/filelist"
-	"github.com/JulianVidal/tagger/internal/engine"
 	"github.com/JulianVidal/tagger/taglist"
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
@@ -26,10 +26,12 @@ var (
 
 type KeyMap struct {
 	Switch key.Binding
+	Print  key.Binding
 }
 
+// TODO: Fix switch keybind showing up when adding tags to item
 func (m Model) ShortHelp() []key.Binding {
-	kb := []key.Binding{m.KeyMap.Switch}
+	kb := []key.Binding{m.KeyMap.Switch, m.KeyMap.Print}
 
 	if m.tagFocus {
 		kb = append(m.tagList.ShortHelp(), kb...)
@@ -41,7 +43,7 @@ func (m Model) ShortHelp() []key.Binding {
 }
 
 func (m Model) FullHelp() [][]key.Binding {
-	first_row := []key.Binding{m.KeyMap.Switch}
+	first_row := []key.Binding{m.KeyMap.Switch, m.KeyMap.Print}
 	var kb [][]key.Binding
 
 	if m.tagFocus {
@@ -60,6 +62,10 @@ var keys = KeyMap{
 		key.WithKeys("f"),
 		key.WithHelp("f", "Filter Tags"),
 	),
+	Print: key.NewBinding(
+		key.WithKeys("p"),
+		key.WithHelp("p", "Show engine"),
+	),
 }
 
 func sliceEq[S []K, K comparable](a S, b S) bool {
@@ -75,11 +81,12 @@ func sliceEq[S []K, K comparable](a S, b S) bool {
 }
 
 type Model struct {
-	fileList filelist.Model
-	KeyMap   KeyMap
-	help     help.Model
-	tagList  taglist.Model
-	tagFocus bool
+	fileList    filelist.Model
+	KeyMap      KeyMap
+	help        help.Model
+	tagList     taglist.Model
+	tagFocus    bool
+	engineFocus bool
 }
 
 func (m Model) Init() tea.Cmd {
@@ -101,42 +108,35 @@ func (m *Model) SetFiles(files []string) tea.Cmd {
 	return m.fileList.List.SetItems(fileItems)
 }
 
-func queryEngine(tagNames []string) []string {
-	var tags []*engine.Tag
-	for _, tagName := range tagNames {
-		tag, exists := engine.FindTag(tagName)
-		if !exists {
-			panic("Couldn't find tag in engine")
-		}
-		tags = append(tags, tag)
-	}
-	objects, err := engine.Query(tags...)
-	if err != nil {
-		panic(err)
-	}
-
-	var files []string
-	for _, object := range objects {
-		files = append(files, object.String())
-	}
-	return files
-}
-
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmds []tea.Cmd
 	var cmd tea.Cmd
 
+	if m.engineFocus {
+		switch msg := msg.(type) {
+		case tea.KeyMsg:
+			switch {
+			case key.Matches(msg, m.KeyMap.Print):
+				m.engineFocus = !m.engineFocus
+			}
+		}
+		return m, nil
+	}
+
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch {
+		case key.Matches(msg, m.KeyMap.Print):
+			m.engineFocus = !m.engineFocus
 		case key.Matches(msg, m.KeyMap.Switch):
 			if m.fileList.List.FilterState() != list.Filtering &&
-				m.tagList.List.FilterState() != list.Filtering {
+				m.tagList.List.FilterState() != list.Filtering &&
+				!m.fileList.FocusingTagList {
 				m.tagFocus = !m.tagFocus
 				if !m.tagFocus {
 					chosenTags := m.tagList.GetChosenTags()
 					if len(chosenTags) != 0 {
-						m.SetFiles(queryEngine(chosenTags))
+						m.SetFiles(handler.QueryEngine(chosenTags))
 						break
 					}
 					m.fileList.List.SetItems(m.fileList.Files)
@@ -158,6 +158,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m Model) View() string {
+	if m.engineFocus {
+		return handler.EngineString()
+	}
 	chosenTags := chosenTagsStyle.Render(
 		fmt.Sprintf("Selected Tags: %s\n", m.tagList.GetChosenTags()),
 	)

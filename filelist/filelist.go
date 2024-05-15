@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/JulianVidal/tagger/app/handler"
 	"github.com/JulianVidal/tagger/taglist"
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
@@ -111,7 +112,10 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			if m.FocusingTagList {
 				item.Tags = m.TagList.GetChosenTags()
 				m.List.SetItem(m.List.Index(), item)
+				handler.SetObjectTags(item.Title, item.Tags)
 			} else {
+				item.Tags = handler.ObjectTags(item.Title)
+				m.List.SetItem(m.List.Index(), item)
 				m.TagList.SetChosen(item.Tags...)
 			}
 			m.FocusingTagList = !m.FocusingTagList
@@ -133,7 +137,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 func (m Model) View() string {
 	view := ""
 	if m.FocusingTagList {
-		view += m.TagList.View()
+		view += lipgloss.JoinHorizontal(lipgloss.Left, m.List.View(), m.TagList.View())
 	} else {
 		view += m.List.View()
 	}

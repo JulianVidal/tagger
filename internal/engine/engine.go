@@ -38,14 +38,29 @@ func Print() {
 	}
 }
 
+func String() string {
+	str := ""
+	str += fmt.Sprintln("Printing engine:")
+	for _, v := range tagMap {
+		str += v.String()
+	}
+	for _, v := range objectMap {
+		str += v.String() + "\n"
+	}
+	return str
+}
+
 func FindTag(name string) (*Tag, bool) {
 	tag, exist := tagMap[name]
 	return tag, exist
 }
 
-func FindObject(name string) (Object, bool) {
+func FindObject(name string) (*Object, bool) {
 	object, exist := objectMap[name]
-	return *object, exist
+	if !exist {
+		return nil, exist
+	}
+	return object, exist
 }
 
 func Tags() []string {
