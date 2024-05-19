@@ -7,8 +7,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/JulianVidal/tagger/app/handler"
-	"github.com/JulianVidal/tagger/taglist"
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
@@ -35,8 +33,8 @@ func (m Model) FullHelp() [][]key.Binding {
 
 var keys = KeyMap{
 	EditTags: key.NewBinding(
-		key.WithKeys("e"),
-		key.WithHelp("e", "Edit Tags"),
+		key.WithKeys("NONE"),
+		key.WithHelp("NONE", "NONE"),
 	),
 }
 
@@ -83,13 +81,11 @@ func (d itemDelegate) Render(w io.Writer, m list.Model, index int, listItem list
 }
 
 type Model struct {
-	List            list.Model
-	KeyMap          KeyMap
-	Help            help.Model
-	Directory       string
-	Files           []list.Item
-	TagList         taglist.Model
-	FocusingTagList bool
+	List      list.Model
+	KeyMap    KeyMap
+	Help      help.Model
+	Directory string
+	Files     []list.Item
 }
 
 func (m Model) Init() tea.Cmd {
@@ -104,31 +100,10 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.List.SetWidth(msg.Width)
 		return m, nil
-
-	case tea.KeyMsg:
-		switch {
-		case key.Matches(msg, m.KeyMap.EditTags):
-			item := m.List.SelectedItem().(Item)
-			if m.FocusingTagList {
-				item.Tags = m.TagList.GetChosenTags()
-				m.List.SetItem(m.List.Index(), item)
-				handler.SetObjectTags(item.Title, item.Tags)
-			} else {
-				item.Tags = handler.ObjectTags(item.Title)
-				m.List.SetItem(m.List.Index(), item)
-				m.TagList.SetChosen(item.Tags...)
-			}
-			m.FocusingTagList = !m.FocusingTagList
-		}
 	}
 
-	if m.FocusingTagList {
-		m.TagList, cmd = m.TagList.Update(msg)
-		m.Help.ShowAll = m.TagList.Help.ShowAll
-	} else {
-		m.List, cmd = m.List.Update(msg)
-		m.Help.ShowAll = m.List.Help.ShowAll
-	}
+	m.List, cmd = m.List.Update(msg)
+	m.Help.ShowAll = m.List.Help.ShowAll
 
 	cmds = append(cmds, cmd)
 	return m, tea.Batch(cmds...)
@@ -136,11 +111,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 func (m Model) View() string {
 	view := ""
-	if m.FocusingTagList {
-		view += lipgloss.JoinHorizontal(lipgloss.Left, m.List.View(), m.TagList.View())
-	} else {
-		view += m.List.View()
-	}
+	view += m.List.View()
 	return view
 }
 
@@ -194,7 +165,5 @@ func New() Model {
 	l.Styles.HelpStyle = helpStyle
 	l.Styles.FilterPrompt = lipgloss.NewStyle().Foreground(lipgloss.Color("100"))
 
-	tl := taglist.New()
-	tl.List.Title = "Add tags to item"
-	return Model{List: l, KeyMap: keys, Help: help.New(), Directory: dir, Files: items, TagList: tl}
+	return Model{List: l, KeyMap: keys, Help: help.New(), Directory: dir, Files: items}
 }

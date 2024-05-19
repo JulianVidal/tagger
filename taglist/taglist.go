@@ -51,6 +51,7 @@ var (
 type Item struct {
 	Title    string
 	Selected bool
+	Tags     []string
 }
 
 func (i Item) FilterValue() string { return i.Title }
@@ -86,7 +87,7 @@ func (d itemDelegate) Render(w io.Writer, m list.Model, index int, listItem list
 	fmt.Fprint(w, fn(str))
 }
 
-func (m Model) GetChosenTags() []string {
+func (m Model) ChosenTags() []string {
 	tags := []string{}
 
 	for _, tag := range m.List.Items() {

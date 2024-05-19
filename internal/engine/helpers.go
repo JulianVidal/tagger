@@ -4,12 +4,14 @@ import "errors"
 
 func delItemsFromSlice[S ~[]I, I comparable](s S, items ...I) (S, error) {
 	deleted := 0
-	for i, value := range s {
-		for _, item := range items {
+
+	for _, item := range items {
+		for i, value := range s {
 			if item == value {
 				s[i] = s[len(s)-1]
 				s = s[:len(s)-1]
 				deleted += 1
+				break
 			}
 		}
 	}

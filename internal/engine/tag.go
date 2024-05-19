@@ -43,6 +43,10 @@ func (t *Tag) Name() string {
 	return t.name
 }
 
+func (t *Tag) Tags() []*Tag {
+	return t.parents
+}
+
 func (t *Tag) AddTags(tags ...*Tag) error {
 	for _, tag := range tags {
 		if _, exists := tagMap[tag.name]; !exists {

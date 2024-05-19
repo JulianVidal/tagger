@@ -2,6 +2,20 @@ package handler
 
 import "github.com/JulianVidal/tagger/internal/engine"
 
+func TagParents(name string) []string {
+	tag, exists := engine.FindTag(name)
+	if !exists {
+		panic("Tag doesn't exist")
+	}
+
+	var parents []string
+	for _, parent := range tag.Tags() {
+		parents = append(parents, parent.Name())
+	}
+
+	return parents
+}
+
 func ObjectTags(name string) []string {
 	object, exists := engine.FindObject(name)
 	if !exists {
@@ -14,6 +28,22 @@ func ObjectTags(name string) []string {
 	}
 
 	return tags
+}
+
+func SetTagParents(name string, parents []string) {
+	tag, exists := engine.FindTag(name)
+	if !exists {
+		panic("Tag doesn't exist")
+	}
+
+	tag.RemoveTags(tag.Tags()...)
+	for _, parentName := range parents {
+		parent, exists := engine.FindTag(parentName)
+		if !exists {
+			panic("Tag doesn't exist")
+		}
+		tag.AddTags(parent)
+	}
 }
 
 func SetObjectTags(name string, tags []string) {
@@ -55,4 +85,8 @@ func QueryEngine(tagNames []string) []string {
 
 func EngineString() string {
 	return engine.String()
+}
+
+func Tags() []string {
+	return engine.Tags()
 }

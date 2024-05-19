@@ -16,8 +16,8 @@ import (
 // TODO: Separate some of this stuff into files
 // TODO: Current plan:
 //			* Separate the file list and tag list into different files
-//			* Add engine support
-//			* For each item create a list of tags it can select from
+//			* Add ways to create a tag
+//			* Add way to add tag to tags
 
 var (
 	helpStyle       = list.DefaultStyles().HelpStyle.PaddingLeft(4).PaddingBottom(1)
@@ -27,6 +27,7 @@ var (
 type KeyMap struct {
 	Switch key.Binding
 	Print  key.Binding
+	Edit   key.Binding
 }
 
 // TODO: Fix switch keybind showing up when adding tags to item
@@ -66,6 +67,10 @@ var keys = KeyMap{
 		key.WithKeys("p"),
 		key.WithHelp("p", "Show engine"),
 	),
+	Edit: key.NewBinding(
+		key.WithKeys("e"),
+		key.WithHelp("e", "Edit Tags"),
+	),
 }
 
 func sliceEq[S []K, K comparable](a S, b S) bool {
@@ -85,6 +90,8 @@ type Model struct {
 	KeyMap      KeyMap
 	help        help.Model
 	tagList     taglist.Model
+	editor      taglist.Model
+	editorFocus bool
 	tagFocus    bool
 	engineFocus bool
 }
@@ -96,7 +103,7 @@ func (m Model) Init() tea.Cmd {
 func (m *Model) SetTags(tags ...string) tea.Cmd {
 	return tea.Batch(
 		m.tagList.SetTags(tags...),
-		m.fileList.TagList.SetTags(tags...),
+		m.editor.SetTags(tags...),
 	)
 }
 
@@ -126,15 +133,38 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch {
+		case key.Matches(msg, m.KeyMap.Edit):
+			if m.tagFocus {
+				tag := m.tagList.List.SelectedItem().(taglist.Item)
+				if m.editorFocus {
+					tag.Tags = m.editor.ChosenTags()
+					handler.SetTagParents(tag.Title, tag.Tags)
+				} else {
+					tag.Tags = handler.TagParents(tag.Title)
+					m.editor.SetChosen(tag.Tags...)
+				}
+				m.tagList.List.SetItem(m.tagList.List.Index(), tag)
+			} else {
+				item := m.fileList.List.SelectedItem().(filelist.Item)
+				if m.editorFocus {
+					item.Tags = m.editor.ChosenTags()
+					handler.SetObjectTags(item.Title, item.Tags)
+				} else {
+					item.Tags = handler.ObjectTags(item.Title)
+					m.editor.SetChosen(item.Tags...)
+				}
+				m.fileList.List.SetItem(m.fileList.List.Index(), item)
+			}
+			m.editorFocus = !m.editorFocus
 		case key.Matches(msg, m.KeyMap.Print):
 			m.engineFocus = !m.engineFocus
 		case key.Matches(msg, m.KeyMap.Switch):
 			if m.fileList.List.FilterState() != list.Filtering &&
 				m.tagList.List.FilterState() != list.Filtering &&
-				!m.fileList.FocusingTagList {
+				!m.editorFocus {
 				m.tagFocus = !m.tagFocus
 				if !m.tagFocus {
-					chosenTags := m.tagList.GetChosenTags()
+					chosenTags := m.tagList.ChosenTags()
 					if len(chosenTags) != 0 {
 						m.SetFiles(handler.QueryEngine(chosenTags))
 						break
@@ -145,12 +175,17 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	}
 
-	if m.tagFocus {
-		m.tagList, cmd = m.tagList.Update(msg)
-		m.help.ShowAll = m.tagList.Help.ShowAll
+	if m.editorFocus {
+		m.editor, cmd = m.editor.Update(msg)
+		m.help.ShowAll = m.editor.Help.ShowAll
 	} else {
-		m.fileList, cmd = m.fileList.Update(msg)
-		m.help.ShowAll = m.fileList.Help.ShowAll
+		if m.tagFocus {
+			m.tagList, cmd = m.tagList.Update(msg)
+			m.help.ShowAll = m.tagList.Help.ShowAll
+		} else {
+			m.fileList, cmd = m.fileList.Update(msg)
+			m.help.ShowAll = m.fileList.Help.ShowAll
+		}
 	}
 
 	cmds = append(cmds, cmd)
@@ -162,7 +197,7 @@ func (m Model) View() string {
 		return handler.EngineString()
 	}
 	chosenTags := chosenTagsStyle.Render(
-		fmt.Sprintf("Selected Tags: %s\n", m.tagList.GetChosenTags()),
+		fmt.Sprintf("Selected Tags: %s\n", m.tagList.ChosenTags()),
 	)
 
 	var focusedList string
@@ -170,6 +205,10 @@ func (m Model) View() string {
 		focusedList = m.tagList.View()
 	} else {
 		focusedList = m.fileList.View()
+	}
+	if m.editorFocus {
+		focusedList = lipgloss.JoinHorizontal(
+			lipgloss.Left, focusedList, m.editor.View())
 	}
 
 	helpView := helpStyle.Render(m.help.View(m))
@@ -179,5 +218,6 @@ func (m Model) View() string {
 func New() Model {
 	fl := filelist.New()
 	tl := taglist.New()
-	return Model{fileList: fl, KeyMap: keys, help: help.New(), tagList: tl}
+	ed := taglist.New()
+	return Model{fileList: fl, KeyMap: keys, help: help.New(), tagList: tl, editor: ed}
 }
