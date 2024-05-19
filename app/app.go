@@ -18,6 +18,7 @@ import (
 //			* Separate the file list and tag list into different files
 //			* Add ways to create a tag
 //			* Add way to add tag to tags
+//			* Tags can't select themselves or their chilren as parents
 
 var (
 	helpStyle       = list.DefaultStyles().HelpStyle.PaddingLeft(4).PaddingBottom(1)

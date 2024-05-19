@@ -52,6 +52,19 @@ func (t *Tag) AddTags(tags ...*Tag) error {
 		if _, exists := tagMap[tag.name]; !exists {
 			return fmt.Errorf("Tag '%s' doesn't exist", tag.name)
 		}
+		if tag.Name() == t.Name() {
+			return fmt.Errorf("Adding Tag '%s' to itself", tag.name)
+		}
+		for _, child := range t.children {
+			if child.Name() == tag.Name() {
+				return fmt.Errorf("Tag '%s' is a child", tag.name)
+			}
+		}
+		for _, parent := range t.parents {
+			if parent.Name() == tag.Name() {
+				return fmt.Errorf("Tag '%s' is already a parent", tag.name)
+			}
+		}
 	}
 
 	t.parents = append(t.parents, tags...)

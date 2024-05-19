@@ -49,6 +49,11 @@ func (o *Object) AddTags(tags ...*Tag) error {
 		if _, exists := tagMap[tag.name]; !exists {
 			return fmt.Errorf("Tag '%s' doesn't exist", tag.name)
 		}
+		for _, t := range o.Tags() {
+			if t.Name() == tag.Name() {
+				return fmt.Errorf("Tag '%s' is already a there", tag.name)
+			}
+		}
 	}
 
 	o.tags = append(o.tags, tags...)
