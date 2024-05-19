@@ -19,6 +19,7 @@ import (
 //			* Add ways to create a tag
 //			* Add way to add tag to tags
 //			* Tags can't select themselves or their chilren as parents
+//			* Way to show error codes from the engine
 
 var (
 	helpStyle       = list.DefaultStyles().HelpStyle.PaddingLeft(4).PaddingBottom(1)
@@ -142,6 +143,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					handler.SetTagParents(tag.Title, tag.Tags)
 				} else {
 					tag.Tags = handler.TagParents(tag.Title)
+					m.editor.SetTags(handler.ValidParenTags(tag.Title)...)
 					m.editor.SetChosen(tag.Tags...)
 				}
 				m.tagList.List.SetItem(m.tagList.List.Index(), tag)
@@ -152,6 +154,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					handler.SetObjectTags(item.Title, item.Tags)
 				} else {
 					item.Tags = handler.ObjectTags(item.Title)
+					m.editor.SetTags(handler.Tags()...)
 					m.editor.SetChosen(item.Tags...)
 				}
 				m.fileList.List.SetItem(m.fileList.List.Index(), item)

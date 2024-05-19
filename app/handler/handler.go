@@ -90,3 +90,26 @@ func EngineString() string {
 func Tags() []string {
 	return engine.Tags()
 }
+
+func ValidParenTags(tagName string) []string {
+	t, exists := engine.FindTag(tagName)
+	if !exists {
+		panic("Couldn't find tag")
+	}
+	validParents := []string{}
+
+OUTER:
+	for _, parent := range engine.Tags() {
+		if parent == tagName {
+			continue
+		}
+		for _, child := range t.Children() {
+			if parent == child.Name() {
+				continue OUTER
+			}
+		}
+		validParents = append(validParents, parent)
+	}
+
+	return validParents
+}

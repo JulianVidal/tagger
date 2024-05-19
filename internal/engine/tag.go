@@ -47,6 +47,10 @@ func (t *Tag) Tags() []*Tag {
 	return t.parents
 }
 
+func (t *Tag) Children() []*Tag {
+	return t.children
+}
+
 func (t *Tag) AddTags(tags ...*Tag) error {
 	for _, tag := range tags {
 		if _, exists := tagMap[tag.name]; !exists {
