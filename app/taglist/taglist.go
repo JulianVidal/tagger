@@ -49,18 +49,12 @@ func (m Model) View() string {
 }
 
 func New() Model {
-
-	items := []list.Item{
-		Item{Title: "tag"},
-		Item{Title: "tag #2"},
-		Item{Title: "tag #3"},
-	}
-
-	l := list.New(items, itemDelegate{}, 20, 14)
+	l := list.New([]list.Item{}, itemDelegate{}, 20, 14)
 	l.Title = "Tags"
 	l.SetShowHelp(false)
 	l.SetShowTitle(false)
 	l.SetShowStatusBar(false)
+	l.DisableQuitKeybindings()
 
 	return Model{KeyMap: keys, List: l, Title: "Tags"}
 }

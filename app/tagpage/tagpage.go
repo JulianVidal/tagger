@@ -6,8 +6,8 @@ import (
 )
 
 type Model struct {
-	TagList taglist.Model
-	Title   string
+	tagList taglist.Model
+	title   string
 }
 
 func (m Model) Init() tea.Cmd {
@@ -18,19 +18,18 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmds []tea.Cmd
 	var cmd tea.Cmd
 
-	m.TagList, cmd = m.TagList.Update(msg)
+	m.tagList, cmd = m.tagList.Update(msg)
 	cmds = append(cmds, cmd)
 
 	return m, tea.Batch(cmds...)
 }
 
 func (m Model) View() string {
-	return m.TagList.View()
+	return m.tagList.View()
 }
 
 func New() Model {
-
 	tl := taglist.New()
 
-	return Model{TagList: tl, Title: "Tags"}
+	return Model{tagList: tl, title: "Tags"}
 }

@@ -10,8 +10,8 @@ import (
 )
 
 func main() {
-	m := app.New()
 	engine.Init()
+	m := app.New()
 	// m.SetTags(engine.Tags()...)
 	if _, err := tea.NewProgram(m).Run(); err != nil {
 		fmt.Println("Error running program:", err)

@@ -3,12 +3,17 @@ package filepage
 import "github.com/charmbracelet/bubbles/key"
 
 type KeyMap struct {
-	Edit key.Binding
+	EnterEdit key.Binding
+	ExitEdit  key.Binding
 }
 
 var keys = KeyMap{
-	Edit: key.NewBinding(
-		key.WithKeys("e"),
-		key.WithHelp("e", "Edit tags"),
+	EnterEdit: key.NewBinding(
+		key.WithKeys("enter"),
+		key.WithHelp("enter", "Edit"),
+	),
+	ExitEdit: key.NewBinding(
+		key.WithKeys("esc"),
+		key.WithHelp("esc", "Exit Edit"),
 	),
 }

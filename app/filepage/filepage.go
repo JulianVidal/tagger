@@ -1,15 +1,20 @@
 package filepage
 
 import (
+	"github.com/JulianVidal/tagger/app/handler"
+	"github.com/JulianVidal/tagger/app/taglist"
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 )
 
 type Model struct {
-	KeyMap   KeyMap
-	FileList list.Model
-	Title    string
+	KeyMap      KeyMap
+	fileList    list.Model
+	title       string
+	editor      taglist.Model
+	editorFocus bool
 }
 
 func (m Model) Init() tea.Cmd {
@@ -22,24 +27,54 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
-		m.FileList.SetWidth(msg.Width)
+		m.fileList.SetWidth(msg.Width)
 		return m, nil
 
 	case tea.KeyMsg:
 		switch {
-		case key.Matches(msg, m.KeyMap.Edit):
+		case m.IsFiltering():
+
+		case key.Matches(msg, m.KeyMap.EnterEdit) && !m.editorFocus:
+			item := m.fileList.SelectedItem().(Item)
+			item.Tags = handler.ObjectTags(item.Title)
+			m.editor.SetTags(handler.Tags()...)
+			m.editor.SetChosen(item.Tags...)
+			m.editorFocus = !m.editorFocus
+			return m, nil
+
+		case key.Matches(msg, m.KeyMap.ExitEdit) && m.editorFocus:
+			item := m.fileList.SelectedItem().(Item)
+			item.Tags = m.editor.ChosenTags()
+			handler.SetObjectTags(item.Title, item.Tags)
+			m.editorFocus = !m.editorFocus
+			return m, nil
 		}
 
 	}
 
-	m.FileList, cmd = m.FileList.Update(msg)
+	if m.editorFocus {
+		m.editor, cmd = m.editor.Update(msg)
+	} else {
+		m.fileList, cmd = m.fileList.Update(msg)
+	}
 	cmds = append(cmds, cmd)
 
 	return m, tea.Batch(cmds...)
 }
 
+var pageStyle = lipgloss.NewStyle().
+	BorderStyle(lipgloss.RoundedBorder()).
+	Width(50)
+
 func (m Model) View() string {
-	return m.FileList.View()
+	editor := ""
+	if m.editorFocus {
+		editor = m.editor.View()
+	}
+
+	return lipgloss.JoinHorizontal(lipgloss.Top,
+		pageStyle.Render(m.fileList.View()),
+		pageStyle.Render(editor))
 }
 
 func New() Model {
@@ -55,6 +90,10 @@ func New() Model {
 	l.SetShowHelp(false)
 	l.SetShowTitle(false)
 	l.SetShowStatusBar(false)
+	l.DisableQuitKeybindings()
 
-	return Model{KeyMap: keys, FileList: l, Title: "Files"}
+	tl := taglist.New()
+	tl.SetTags(handler.Tags()...)
+
+	return Model{KeyMap: keys, fileList: l, title: "Files", editor: tl}
 }

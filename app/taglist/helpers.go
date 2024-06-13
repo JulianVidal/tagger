@@ -48,3 +48,7 @@ func (m *Model) clearChosen() {
 		}
 	}
 }
+
+func (m Model) IsFiltering() bool {
+	return m.List.FilterState() == list.Filtering
+}

@@ -113,3 +113,11 @@ OUTER:
 
 	return validParents
 }
+
+func TagExists(tag string) bool {
+	return engine.TagExists(tag)
+}
+
+func ObjectExists(object string) bool {
+	return engine.ObjectExists(object)
+}

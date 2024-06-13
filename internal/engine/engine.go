@@ -104,3 +104,13 @@ func Query(tags ...*Tag) ([]Object, error) {
 
 	return resultList, nil
 }
+
+func TagExists(tag string) bool {
+	_, ok := tagMap[tag]
+	return ok
+}
+
+func ObjectExists(object string) bool {
+	_, ok := objectMap[object]
+	return ok
+}

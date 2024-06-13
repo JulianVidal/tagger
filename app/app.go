@@ -4,7 +4,9 @@ import (
 	"fmt"
 
 	"github.com/JulianVidal/tagger/app/filepage"
+	"github.com/JulianVidal/tagger/app/handler"
 	"github.com/JulianVidal/tagger/app/tagpage"
+	"github.com/JulianVidal/tagger/internal/indexer"
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -16,24 +18,36 @@ const (
 	c2
 )
 
-type Page struct {
-	model tea.Model
-	title string
+type Page interface {
+	tea.Model
+	IsFiltering() bool
+	Title() string
 }
 
 type Model struct {
-	KeyMap    KeyMap
-	Pages     []Page
-	PageIndex int
+	KeyMap   KeyMap
+	Focus    Page
+	FilePage filepage.Model
+	TagPage  tagpage.Model
+}
+
+func union[S []K, K comparable](as S, bs S) S {
+	a_set := make(map[K]struct{})
+	for _, a := range as {
+		a_set[a] = struct{}{}
+	}
+	cs := []K{}
+
+	for _, b := range bs {
+		if _, ok := a_set[b]; ok {
+			cs = append(cs, b)
+		}
+	}
+	return cs
 }
 
 func (m Model) Init() tea.Cmd {
 	return nil
-}
-
-type PageModel interface {
-	tea.Model
-	Name() string
 }
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -45,15 +59,29 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch {
 		case key.Matches(msg, m.KeyMap.Quit):
 			return m, tea.Quit
+		case m.Focus.IsFiltering():
 		case key.Matches(msg, m.KeyMap.FilePage):
-			m.PageIndex = 0
+
+			tagged_files := handler.QueryEngine(m.TagPage.ChosenTags())
+			files := indexer.Query("")
+
+			if len(tagged_files) != 0 {
+				files = union(tagged_files, files)
+			}
+
+			cmd = m.FilePage.SetFiles(files)
+			cmds = append(cmds, cmd)
+
+			m.Focus = m.FilePage
 		case key.Matches(msg, m.KeyMap.TagPage):
-			m.PageIndex = 1
+			m.Focus = m.TagPage
 		}
 
 	}
 
-	m.Pages[m.PageIndex].model, cmd = m.Pages[m.PageIndex].model.Update(msg)
+	updatedPage, cmd := m.Focus.Update(msg)
+	m.Focus = updatedPage.(Page)
+
 	cmds = append(cmds, cmd)
 
 	return m, tea.Batch(cmds...)
@@ -73,9 +101,9 @@ var pageStyle = lipgloss.NewStyle().
 
 func (m Model) View() string {
 	titles := []string{}
-	for i, page := range m.Pages {
-		title := fmt.Sprintf("%d. %s", i+1, page.title)
-		if i == m.PageIndex {
+	for i, page := range []Page{m.FilePage, m.TagPage} {
+		title := fmt.Sprintf("%d. %s", i+1, page.Title())
+		if m.Focus.Title() == page.Title() {
 			titles = append(titles, titleFocusStyle.Render(title))
 		} else {
 			titles = append(titles, titleStyle.Render(title))
@@ -83,25 +111,19 @@ func (m Model) View() string {
 	}
 	return lipgloss.JoinVertical(lipgloss.Left,
 		lipgloss.JoinHorizontal(lipgloss.Top, titles...),
-		pageStyle.Render(m.Pages[m.PageIndex].model.View()),
+		m.Focus.View(),
 	)
 }
 
 func New() Model {
 	fp := filepage.New()
 	tp := tagpage.New()
-	pages := []Page{
-		{
-			model: fp,
-			title: fp.Title,
-		},
-		{
-			model: tp,
-			title: tp.Title,
-		},
-	}
+	tp.SetTags(handler.Tags()...)
+
 	return Model{
-		KeyMap: keys,
-		Pages:  pages,
+		KeyMap:   keys,
+		Focus:    tp,
+		FilePage: fp,
+		TagPage:  tp,
 	}
 }

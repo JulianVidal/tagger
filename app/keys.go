@@ -23,7 +23,7 @@ var keys = KeyMap{
 		key.WithHelp("p", "Show engine"),
 	),
 	Quit: key.NewBinding(
-		key.WithKeys("ctrl+c"),
-		key.WithHelp("q", "Quit"),
+		key.WithKeys("ctrl+c", "q"),
+		key.WithHelp("ctrl+c", "Quit"),
 	),
 }
