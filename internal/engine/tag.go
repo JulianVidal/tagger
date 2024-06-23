@@ -133,6 +133,10 @@ func (t *Tag) Delete() {
 		child.parents, _ = delItemsFromSlice(child.parents, t)
 	}
 
+	for _, object := range t.objects {
+		object.tags, _ = delItemsFromSlice(object.tags, t)
+	}
+
 	delete(tagMap, t.name)
 }
 
