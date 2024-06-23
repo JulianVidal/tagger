@@ -9,7 +9,6 @@ import (
 type Model struct {
 	KeyMap KeyMap
 	List   list.Model
-	Title  string
 }
 
 func (m Model) Init() tea.Cmd {
@@ -50,11 +49,9 @@ func (m Model) View() string {
 
 func New() Model {
 	l := list.New([]list.Item{}, itemDelegate{}, 20, 14)
-	l.Title = "Tags"
 	l.SetShowHelp(false)
-	l.SetShowTitle(false)
 	l.SetShowStatusBar(false)
 	l.DisableQuitKeybindings()
 
-	return Model{KeyMap: keys, List: l, Title: "Tags"}
+	return Model{KeyMap: keys, List: l}
 }

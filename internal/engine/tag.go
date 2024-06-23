@@ -33,6 +33,9 @@ func (t *Tag) Print() {
 func (t *Tag) String() string {
 	var str string
 	str += fmt.Sprintf("Tag: %s\n", t.name)
+	for _, parent := range t.parents {
+		str += fmt.Sprintf("\t%s\n", parent.name)
+	}
 	for _, object := range t.objects {
 		str += fmt.Sprintf("\t%s\n", object)
 	}

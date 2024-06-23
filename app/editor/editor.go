@@ -46,6 +46,7 @@ func (m Model) View() string {
 
 func New() Model {
 	tl := taglist.New()
+	tl.List.Title = "Add tags"
 
 	m := Model{tagList: tl}
 

@@ -5,10 +5,25 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
+func union[S []K, K comparable](as S, bs S) S {
+	a_set := make(map[K]struct{})
+	for _, a := range as {
+		a_set[a] = struct{}{}
+	}
+	cs := []K{}
+
+	for _, b := range bs {
+		if _, ok := a_set[b]; ok {
+			cs = append(cs, b)
+		}
+	}
+	return cs
+}
+
 func (m Model) IsFiltering() bool {
 	return m.fileList.FilterState() == list.Filtering ||
 		m.editor.IsFiltering() ||
-		m.tagList.IsFiltering()
+		m.tagFilter.IsFiltering()
 }
 
 func (m Model) Title() string {
@@ -21,8 +36,4 @@ func (m *Model) SetFiles(files []string) tea.Cmd {
 		fileItems = append(fileItems, Item{Title: file})
 	}
 	return m.fileList.SetItems(fileItems)
-}
-
-func mod(a, b int) int {
-	return (a%b + b) % b
 }

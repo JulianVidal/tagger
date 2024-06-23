@@ -11,35 +11,20 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-func union[S []K, K comparable](as S, bs S) S {
-	a_set := make(map[K]struct{})
-	for _, a := range as {
-		a_set[a] = struct{}{}
-	}
-	cs := []K{}
-
-	for _, b := range bs {
-		if _, ok := a_set[b]; ok {
-			cs = append(cs, b)
-		}
-	}
-	return cs
-}
-
 type Model struct {
-	KeyMap   KeyMap
-	fileList list.Model
-	title    string
-	tagList  taglist.Model
-	focus    Panel
-	editor   editor.Model
+	KeyMap    KeyMap
+	title     string
+	focus     Panel
+	fileList  list.Model
+	tagFilter taglist.Model
+	editor    editor.Model
 }
 
 func (m Model) Init() tea.Cmd {
 	return nil
 }
 
-func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	var cmds []tea.Cmd
 	var cmd tea.Cmd
 
@@ -53,16 +38,16 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case m.IsFiltering():
 
 		case key.Matches(msg, m.KeyMap.Left):
-			m.switchPanel(m.focus.Prev())
+			m.focus = m.focus.Prev()
 
 		case key.Matches(msg, m.KeyMap.Right):
-			m.switchPanel(m.focus.Next())
+			m.focus = m.focus.Next()
 		}
 	}
 
 	switch m.focus {
 	case TagFilter:
-		m.tagList, cmd = m.tagList.Update(msg)
+		m.tagFilter, cmd = m.tagFilter.Update(msg)
 	case FileList:
 		m.fileList, cmd = m.fileList.Update(msg)
 	case Editor:
@@ -76,10 +61,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch {
 		case key.Matches(msg,
-			m.tagList.KeyMap.Select) &&
+			m.tagFilter.KeyMap.Select) &&
 			m.focus == TagFilter:
 
-			tagged_files := handler.QueryEngine(m.tagList.ChosenTags())
+			tagged_files := handler.QueryEngine(m.tagFilter.ChosenTags())
 			files := indexer.Query("")
 
 			if len(tagged_files) != 0 {
@@ -104,44 +89,58 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 var pageStyle = lipgloss.NewStyle().
-	BorderStyle(lipgloss.RoundedBorder())
+	BorderStyle(lipgloss.RoundedBorder()).
+	Width(50)
+
+var pageFocusStyle = pageStyle.Copy().
+	BorderForeground(lipgloss.Color("63"))
 
 func (m Model) View() string {
+	tagFilterStyle := pageStyle
+	fileListStyle := pageStyle
+	editorStyle := pageStyle
+	switch m.focus {
+	case TagFilter:
+		tagFilterStyle = pageFocusStyle
+	case FileList:
+		fileListStyle = pageFocusStyle
+	case Editor:
+		editorStyle = pageFocusStyle
+	}
 	return lipgloss.JoinHorizontal(lipgloss.Top,
-		pageStyle.Width(20).Render(m.tagList.View()),
-		pageStyle.Width(30).Render(m.fileList.View()),
-		pageStyle.Width(30).Render(m.editor.View()),
+		tagFilterStyle.Width(20).Render(m.tagFilter.View()),
+		fileListStyle.Width(30).Render(m.fileList.View()),
+		editorStyle.Width(30).Render(m.editor.View()),
 	)
 }
 
 func New() Model {
 
-	items := []list.Item{
-		Item{Title: "di"},
-		Item{Title: "temporary title"},
-		Item{Title: "tempotitle #2"},
+	items := []list.Item{}
+	for _, file := range indexer.Query("") {
+		items = append(items, Item{Title: file})
 	}
 
 	l := list.New(items, itemDelegate{}, 20, 14)
 	l.Title = "Files"
 	l.SetShowHelp(false)
-	l.SetShowTitle(false)
 	l.SetShowStatusBar(false)
 	l.DisableQuitKeybindings()
 
-	tl := editor.New()
+	ed := editor.New()
 	item := l.SelectedItem().(Item)
-	tl.SetEditorObject(item.Title)
+	ed.SetEditorObject(item.Title)
 
 	fl := taglist.New()
+	fl.List.Title = "Filter by tags"
 	fl.SetTags(handler.Tags()...)
 
 	return Model{
-		KeyMap:   keys,
-		title:    "Files",
-		fileList: l,
-		editor:   tl,
-		tagList:  fl,
-		focus:    FileList,
+		KeyMap:    keys,
+		title:     "Files",
+		fileList:  l,
+		editor:    ed,
+		tagFilter: fl,
+		focus:     FileList,
 	}
 }

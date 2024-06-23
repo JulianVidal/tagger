@@ -1,10 +1,9 @@
-package filepage
+package tagpage
 
 type Panel int
 
 const (
-	TagFilter Panel = iota
-	FileList
+	TagList Panel = iota
 	Editor
 	max
 )
