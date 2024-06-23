@@ -19,7 +19,7 @@ func delItemsFromSlice[S ~[]I, I comparable](s S, items ...I) (S, error) {
 		return s, nil
 	}
 
-	return nil, errors.New("Not all items were deleted")
+	return nil, errors.New("Not all items to delete were deleted")
 }
 
 // TODO: How should it deal if the same key has two different values, which should it pick?

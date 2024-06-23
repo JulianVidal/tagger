@@ -57,9 +57,6 @@ func FindTag(name string) (*Tag, bool) {
 
 func FindObject(name string) (*Object, bool) {
 	object, exist := objectMap[name]
-	if !exist {
-		return nil, exist
-	}
 	return object, exist
 }
 

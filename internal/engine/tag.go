@@ -79,11 +79,45 @@ func (t *Tag) AddTags(tags ...*Tag) error {
 	return nil
 }
 
-func (t *Tag) RemoveTags(tags ...*Tag) {
-	t.parents, _ = delItemsFromSlice(t.parents, tags...)
+func (t *Tag) RemoveTags(tags ...*Tag) error {
 	for _, tag := range tags {
-		tag.children, _ = delItemsFromSlice(tag.children, t)
+		if _, exists := tagMap[tag.name]; !exists {
+			return fmt.Errorf("Tag '%s' doesn't exist", tag.name)
+		}
+		if tag.Name() == t.Name() {
+			return fmt.Errorf("Removing tag from '%s' itself", tag.name)
+		}
+		exists := false
+		for _, parent := range t.parents {
+			if parent.Name() == tag.Name() {
+				exists = true
+			}
+		}
+		if !exists {
+			return fmt.Errorf("Tag '%s' is not a parent", tag.name)
+		}
+
+		for _, child := range t.children {
+			if child.Name() == tag.Name() {
+				panic("Tag is a child and a parent")
+			}
+		}
 	}
+
+	var err error
+	t.parents, err = delItemsFromSlice(t.parents, tags...)
+	if err != nil {
+		panic("Couldn't delete tags from tag")
+	}
+
+	for _, tag := range tags {
+		tag.children, err = delItemsFromSlice(tag.children, t)
+		if err != nil {
+			panic("Couldn't delete tags from tag")
+		}
+	}
+
+	return nil
 }
 
 func (t *Tag) Delete() {

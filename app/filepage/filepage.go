@@ -1,20 +1,38 @@
 package filepage
 
 import (
+	"github.com/JulianVidal/tagger/app/editor"
 	"github.com/JulianVidal/tagger/app/handler"
 	"github.com/JulianVidal/tagger/app/taglist"
+	"github.com/JulianVidal/tagger/internal/indexer"
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
 
+func union[S []K, K comparable](as S, bs S) S {
+	a_set := make(map[K]struct{})
+	for _, a := range as {
+		a_set[a] = struct{}{}
+	}
+	cs := []K{}
+
+	for _, b := range bs {
+		if _, ok := a_set[b]; ok {
+			cs = append(cs, b)
+		}
+	}
+	return cs
+}
+
 type Model struct {
-	KeyMap      KeyMap
-	fileList    list.Model
-	title       string
-	editor      taglist.Model
-	editorFocus bool
+	KeyMap   KeyMap
+	fileList list.Model
+	title    string
+	tagList  taglist.Model
+	focus    Panel
+	editor   editor.Model
 }
 
 func (m Model) Init() tea.Cmd {
@@ -34,47 +52,66 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch {
 		case m.IsFiltering():
 
-		case key.Matches(msg, m.KeyMap.EnterEdit) && !m.editorFocus:
-			item := m.fileList.SelectedItem().(Item)
-			item.Tags = handler.ObjectTags(item.Title)
-			m.editor.SetTags(handler.Tags()...)
-			m.editor.SetChosen(item.Tags...)
-			m.editorFocus = !m.editorFocus
-			return m, nil
+		case key.Matches(msg, m.KeyMap.Left):
+			m.switchPanel(m.focus.Prev())
 
-		case key.Matches(msg, m.KeyMap.ExitEdit) && m.editorFocus:
-			item := m.fileList.SelectedItem().(Item)
-			item.Tags = m.editor.ChosenTags()
-			handler.SetObjectTags(item.Title, item.Tags)
-			m.editorFocus = !m.editorFocus
-			return m, nil
+		case key.Matches(msg, m.KeyMap.Right):
+			m.switchPanel(m.focus.Next())
 		}
-
 	}
 
-	if m.editorFocus {
-		m.editor, cmd = m.editor.Update(msg)
-	} else {
+	switch m.focus {
+	case TagFilter:
+		m.tagList, cmd = m.tagList.Update(msg)
+	case FileList:
 		m.fileList, cmd = m.fileList.Update(msg)
+	case Editor:
+		m.editor, cmd = m.editor.Update(msg)
+	default:
+		panic("Wrong Focus Number")
 	}
 	cmds = append(cmds, cmd)
+
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch {
+		case key.Matches(msg,
+			m.tagList.KeyMap.Select) &&
+			m.focus == TagFilter:
+
+			tagged_files := handler.QueryEngine(m.tagList.ChosenTags())
+			files := indexer.Query("")
+
+			if len(tagged_files) != 0 {
+				files = union(tagged_files, files)
+			}
+
+			cmd = m.SetFiles(files)
+			cmds = append(cmds, cmd)
+
+		case key.Matches(msg,
+			m.fileList.KeyMap.CursorDown,
+			m.fileList.KeyMap.CursorUp) &&
+			m.focus == FileList:
+
+			item := m.fileList.SelectedItem().(Item)
+			m.editor.SetEditorObject(item.Title)
+
+		}
+	}
 
 	return m, tea.Batch(cmds...)
 }
 
 var pageStyle = lipgloss.NewStyle().
-	BorderStyle(lipgloss.RoundedBorder()).
-	Width(50)
+	BorderStyle(lipgloss.RoundedBorder())
 
 func (m Model) View() string {
-	editor := ""
-	if m.editorFocus {
-		editor = m.editor.View()
-	}
-
 	return lipgloss.JoinHorizontal(lipgloss.Top,
-		pageStyle.Render(m.fileList.View()),
-		pageStyle.Render(editor))
+		pageStyle.Width(20).Render(m.tagList.View()),
+		pageStyle.Width(30).Render(m.fileList.View()),
+		pageStyle.Width(30).Render(m.editor.View()),
+	)
 }
 
 func New() Model {
@@ -92,8 +129,19 @@ func New() Model {
 	l.SetShowStatusBar(false)
 	l.DisableQuitKeybindings()
 
-	tl := taglist.New()
-	tl.SetTags(handler.Tags()...)
+	tl := editor.New()
+	item := l.SelectedItem().(Item)
+	tl.SetEditorObject(item.Title)
 
-	return Model{KeyMap: keys, fileList: l, title: "Files", editor: tl}
+	fl := taglist.New()
+	fl.SetTags(handler.Tags()...)
+
+	return Model{
+		KeyMap:   keys,
+		title:    "Files",
+		fileList: l,
+		editor:   tl,
+		tagList:  fl,
+		focus:    FileList,
+	}
 }

@@ -26,16 +26,25 @@ func (m *Model) SetTags(tags ...string) tea.Cmd {
 	return m.List.SetItems(items)
 }
 
+func (m *Model) ClearTags() tea.Cmd {
+	return m.List.SetItems([]list.Item{})
+}
+
 func (m *Model) SetChosen(tags ...string) {
 	m.clearChosen()
+	chosen := 0
 	for i, item := range m.List.Items() {
 		item := item.(Item)
 		for _, tag := range tags {
 			if item.Title == tag {
 				item.Selected = true
 				m.List.SetItem(i, item)
+				chosen += 1
 			}
 		}
+	}
+	if chosen != len(tags) {
+		panic("Couldn't select all the tags")
 	}
 }
 

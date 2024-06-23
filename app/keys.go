@@ -19,8 +19,8 @@ var keys = KeyMap{
 		key.WithHelp("2", "Tags"),
 	),
 	Print: key.NewBinding(
-		key.WithKeys("p"),
-		key.WithHelp("p", "Show engine"),
+		key.WithKeys("3"),
+		key.WithHelp("3", "Show engine"),
 	),
 	Quit: key.NewBinding(
 		key.WithKeys("ctrl+c", "q"),

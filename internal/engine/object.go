@@ -64,11 +64,35 @@ func (o *Object) AddTags(tags ...*Tag) error {
 	return nil
 }
 
-func (o *Object) RemoveTag(tags ...*Tag) {
-	o.tags, _ = delItemsFromSlice(o.tags, tags...)
+func (o *Object) RemoveTags(tags ...*Tag) error {
 	for _, tag := range tags {
-		tag.objects, _ = delItemsFromSlice(tag.objects, o)
+		if _, exists := tagMap[tag.name]; !exists {
+			return fmt.Errorf("Tag '%s' doesn't exist", tag.name)
+		}
+		exists := false
+		for _, t := range o.Tags() {
+			if t.Name() == tag.Name() {
+				exists = true
+			}
+		}
+		if !exists {
+			return fmt.Errorf("Tag '%s' is not there", tag.name)
+		}
 	}
+
+	var err error
+	o.tags, err = delItemsFromSlice(o.tags, tags...)
+	if err != nil {
+		panic("Couldn't delete tags from object")
+	}
+	for _, tag := range tags {
+		tag.objects, err = delItemsFromSlice(tag.objects, o)
+		if err != nil {
+			panic("Couldn't delete object from tags")
+		}
+	}
+
+	return nil
 }
 
 func (o *Object) Delete() {

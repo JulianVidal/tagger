@@ -5,15 +5,17 @@ import "github.com/charmbracelet/bubbles/key"
 type KeyMap struct {
 	EnterEdit key.Binding
 	ExitEdit  key.Binding
+	Left      key.Binding
+	Right     key.Binding
 }
 
 var keys = KeyMap{
-	EnterEdit: key.NewBinding(
-		key.WithKeys("enter"),
-		key.WithHelp("enter", "Edit"),
+	Left: key.NewBinding(
+		key.WithKeys("h"),
+		key.WithHelp("h", "Left"),
 	),
-	ExitEdit: key.NewBinding(
-		key.WithKeys("esc"),
-		key.WithHelp("esc", "Exit Edit"),
+	Right: key.NewBinding(
+		key.WithKeys("l"),
+		key.WithHelp("l", "Right"),
 	),
 }

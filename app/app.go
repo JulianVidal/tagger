@@ -3,20 +3,34 @@ package app
 import (
 	"fmt"
 
+	"github.com/JulianVidal/tagger/app/enginepage"
 	"github.com/JulianVidal/tagger/app/filepage"
 	"github.com/JulianVidal/tagger/app/handler"
 	"github.com/JulianVidal/tagger/app/tagpage"
-	"github.com/JulianVidal/tagger/internal/indexer"
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
 
-const (
-	FilePage = iota
-	TagPage
-	c2
-)
+// TODO: Add filtering feature again :/
+// TODO: Colour outline or remove colour when switching panels
+// TODO: Find a way to keep the tags in order
+// TODO: Separate some of this stuff into files
+// TODO: Current plan:
+//			* Add ways to create a tag
+//			* Add ways to delete a tag
+//			* Add a generic indexer so we can use locate, fzf, everything, etc...
+//			* Way to show error codes from the engine
+
+// NOTE: What I need
+//   - A list of files
+//   - Needs to be searchable through filename
+//   - Needs to be searchable through tags
+//   - Files should be taggable
+//   - A list of tags
+//   - Needs to be searchable through tag name
+//   - Needs to be searchable throgh tags
+//   - Tags should be taggable
 
 type Page interface {
 	tea.Model
@@ -25,25 +39,11 @@ type Page interface {
 }
 
 type Model struct {
-	KeyMap   KeyMap
-	Focus    Page
-	FilePage filepage.Model
-	TagPage  tagpage.Model
-}
-
-func union[S []K, K comparable](as S, bs S) S {
-	a_set := make(map[K]struct{})
-	for _, a := range as {
-		a_set[a] = struct{}{}
-	}
-	cs := []K{}
-
-	for _, b := range bs {
-		if _, ok := a_set[b]; ok {
-			cs = append(cs, b)
-		}
-	}
-	return cs
+	KeyMap     KeyMap
+	Focus      Page
+	FilePage   filepage.Model
+	TagPage    tagpage.Model
+	EnginePage enginepage.Model
 }
 
 func (m Model) Init() tea.Cmd {
@@ -61,20 +61,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 		case m.Focus.IsFiltering():
 		case key.Matches(msg, m.KeyMap.FilePage):
-
-			tagged_files := handler.QueryEngine(m.TagPage.ChosenTags())
-			files := indexer.Query("")
-
-			if len(tagged_files) != 0 {
-				files = union(tagged_files, files)
-			}
-
-			cmd = m.FilePage.SetFiles(files)
-			cmds = append(cmds, cmd)
-
 			m.Focus = m.FilePage
 		case key.Matches(msg, m.KeyMap.TagPage):
 			m.Focus = m.TagPage
+		case key.Matches(msg, m.KeyMap.Print):
+			m.Focus = m.EnginePage
 		}
 
 	}
@@ -101,7 +92,7 @@ var pageStyle = lipgloss.NewStyle().
 
 func (m Model) View() string {
 	titles := []string{}
-	for i, page := range []Page{m.FilePage, m.TagPage} {
+	for i, page := range []Page{m.FilePage, m.TagPage, m.EnginePage} {
 		title := fmt.Sprintf("%d. %s", i+1, page.Title())
 		if m.Focus.Title() == page.Title() {
 			titles = append(titles, titleFocusStyle.Render(title))
@@ -119,11 +110,13 @@ func New() Model {
 	fp := filepage.New()
 	tp := tagpage.New()
 	tp.SetTags(handler.Tags()...)
+	ep := enginepage.Model{}
 
 	return Model{
-		KeyMap:   keys,
-		Focus:    tp,
-		FilePage: fp,
-		TagPage:  tp,
+		KeyMap:     keys,
+		Focus:      fp,
+		FilePage:   fp,
+		TagPage:    tp,
+		EnginePage: ep,
 	}
 }

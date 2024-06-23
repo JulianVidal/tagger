@@ -52,7 +52,7 @@ func SetObjectTags(name string, tags []string) {
 		panic("Object doesn't exist")
 	}
 
-	object.RemoveTag(object.Tags()...)
+	object.RemoveTags(object.Tags()...)
 	for _, tagName := range tags {
 		tag, exists := engine.FindTag(tagName)
 		if !exists {

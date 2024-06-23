@@ -7,7 +7,8 @@ import (
 
 func (m Model) IsFiltering() bool {
 	return m.fileList.FilterState() == list.Filtering ||
-		m.editor.IsFiltering()
+		m.editor.IsFiltering() ||
+		m.tagList.IsFiltering()
 }
 
 func (m Model) Title() string {
@@ -20,4 +21,8 @@ func (m *Model) SetFiles(files []string) tea.Cmd {
 		fileItems = append(fileItems, Item{Title: file})
 	}
 	return m.fileList.SetItems(fileItems)
+}
+
+func mod(a, b int) int {
+	return (a%b + b) % b
 }

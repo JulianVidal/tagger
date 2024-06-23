@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	"github.com/JulianVidal/tagger/app/handler"
-	"github.com/JulianVidal/tagger/app/old/filelist"
-	"github.com/JulianVidal/tagger/app/old/taglist"
+	"github.com/JulianVidal/tagger/filelist"
+	"github.com/JulianVidal/tagger/taglist"
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
