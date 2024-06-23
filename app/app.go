@@ -12,12 +12,10 @@ import (
 )
 
 // TODO: Find a way to keep the tags in order
-// TODO: Delete hanler?
+// TODO: Delete handler?
 // TODO: Separate some of this stuff into files
 // TODO: Current plan:
-//			* Add ways to create a tag <-
-//				* Will need to update, filter, taglists...
-//			* Add ways to delete a tag
+//			* Add ways to delete a tag * Add delete to confirm
 //			* Add a generic indexer so we can use locate, fzf, everything, etc...
 //			* Way to show error codes from the engine
 

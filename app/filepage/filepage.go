@@ -2,7 +2,6 @@ package filepage
 
 import (
 	"github.com/JulianVidal/tagger/app/editor"
-	"github.com/JulianVidal/tagger/app/handler"
 	"github.com/JulianVidal/tagger/app/taglist"
 	"github.com/JulianVidal/tagger/internal/indexer"
 	"github.com/charmbracelet/bubbles/key"
@@ -64,14 +63,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			m.tagFilter.KeyMap.Select) &&
 			m.focus == TagFilter:
 
-			tagged_files := handler.QueryEngine(m.tagFilter.ChosenTags())
-			files := indexer.Query("")
-
-			if len(tagged_files) != 0 {
-				files = union(tagged_files, files)
-			}
-
-			cmd = m.SetFiles(files)
+			cmd = m.SetFiles(m.getFiles())
 			cmds = append(cmds, cmd)
 
 		case key.Matches(msg,

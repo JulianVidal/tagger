@@ -2,6 +2,7 @@ package filepage
 
 import (
 	"github.com/JulianVidal/tagger/internal/engine"
+	"github.com/JulianVidal/tagger/internal/indexer"
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -43,4 +44,32 @@ func (m *Model) UpdateTags() {
 	m.tagFilter.SetTags(engine.Tags()...)
 	item := m.fileList.SelectedItem().(Item)
 	m.editor.SetEditorObject(item.Title)
+}
+
+func (m Model) getFiles() []string {
+	var tags []*engine.Tag
+	for _, tagName := range m.tagFilter.ChosenTags() {
+		tag, exists := engine.FindTag(tagName)
+		if !exists {
+			panic("Couldn't find tag in engine")
+		}
+		tags = append(tags, tag)
+	}
+	objects, err := engine.Query(tags...)
+	if err != nil {
+		panic(err)
+	}
+
+	var tagged_files []string
+	for _, object := range objects {
+		tagged_files = append(tagged_files, object.Name())
+	}
+
+	files := indexer.Query("")
+
+	if len(tagged_files) != 0 {
+		files = union(tagged_files, files)
+	}
+
+	return files
 }
