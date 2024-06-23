@@ -3,11 +3,26 @@ package tagpage
 import "github.com/charmbracelet/bubbles/key"
 
 type KeyMap struct {
-	Left  key.Binding
-	Right key.Binding
+	Left   key.Binding
+	Right  key.Binding
+	Create key.Binding
+	Enter  key.Binding
+	Escape key.Binding
 }
 
 var keys = KeyMap{
+	Escape: key.NewBinding(
+		key.WithKeys("esc"),
+		key.WithHelp("esc", "Cancel"),
+	),
+	Enter: key.NewBinding(
+		key.WithKeys("enter"),
+		key.WithHelp("enter", "Confirm"),
+	),
+	Create: key.NewBinding(
+		key.WithKeys("c"),
+		key.WithHelp("c", "Create"),
+	),
 	Left: key.NewBinding(
 		key.WithKeys("h"),
 		key.WithHelp("h", "Left"),

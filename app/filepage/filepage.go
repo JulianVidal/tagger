@@ -128,14 +128,11 @@ func New() Model {
 	l.DisableQuitKeybindings()
 
 	ed := editor.New()
-	item := l.SelectedItem().(Item)
-	ed.SetEditorObject(item.Title)
 
 	fl := taglist.New()
 	fl.List.Title = "Filter by tags"
-	fl.SetTags(handler.Tags()...)
 
-	return Model{
+	m := Model{
 		KeyMap:    keys,
 		title:     "Files",
 		fileList:  l,
@@ -143,4 +140,7 @@ func New() Model {
 		tagFilter: fl,
 		focus:     FileList,
 	}
+
+	m.UpdateTags()
+	return m
 }

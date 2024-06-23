@@ -1,6 +1,7 @@
 package filepage
 
 import (
+	"github.com/JulianVidal/tagger/internal/engine"
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -36,4 +37,10 @@ func (m *Model) SetFiles(files []string) tea.Cmd {
 		fileItems = append(fileItems, Item{Title: file})
 	}
 	return m.fileList.SetItems(fileItems)
+}
+
+func (m *Model) UpdateTags() {
+	m.tagFilter.SetTags(engine.Tags()...)
+	item := m.fileList.SelectedItem().(Item)
+	m.editor.SetEditorObject(item.Title)
 }

@@ -12,10 +12,11 @@ import (
 )
 
 // TODO: Find a way to keep the tags in order
-// TODO: Filtering has weird interactions as things aren't updated
+// TODO: Delete hanler?
 // TODO: Separate some of this stuff into files
 // TODO: Current plan:
-//			* Add ways to create a tag
+//			* Add ways to create a tag <-
+//				* Will need to update, filter, taglists...
 //			* Add ways to delete a tag
 //			* Add a generic indexer so we can use locate, fzf, everything, etc...
 //			* Way to show error codes from the engine
@@ -57,11 +58,16 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case m.EnginePage.IsFiltering() && m.Focus == EnginePage:
 
 		case key.Matches(msg, m.KeyMap.FilePage):
+			m.FilePage.UpdateTags()
 			m.Focus = FilePage
+			return m, tea.Batch(cmds...)
 		case key.Matches(msg, m.KeyMap.TagPage):
+			m.TagPage.UpdateTags()
 			m.Focus = TagPage
+			return m, tea.Batch(cmds...)
 		case key.Matches(msg, m.KeyMap.Print):
 			m.Focus = EnginePage
+			return m, tea.Batch(cmds...)
 		}
 
 	}
