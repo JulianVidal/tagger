@@ -8,6 +8,11 @@ func (m *Model) ResetCursor() {
 	m.tagList.List.Select(0)
 }
 
+func (m *Model) ClearEditor() {
+	m.editorItem = nil
+	m.tagList.ClearTags()
+}
+
 func (m *Model) SetEditorTag(item string) {
 	m.editorItem = NewEditorTag(item)
 	m.updateTagList()

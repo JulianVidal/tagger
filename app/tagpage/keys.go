@@ -6,6 +6,7 @@ type KeyMap struct {
 	Left   key.Binding
 	Right  key.Binding
 	Create key.Binding
+	Delete key.Binding
 	Enter  key.Binding
 	Escape key.Binding
 }
@@ -22,6 +23,10 @@ var keys = KeyMap{
 	Create: key.NewBinding(
 		key.WithKeys("c"),
 		key.WithHelp("c", "Create"),
+	),
+	Delete: key.NewBinding(
+		key.WithKeys("d"),
+		key.WithHelp("d", "Delete"),
 	),
 	Left: key.NewBinding(
 		key.WithKeys("h"),

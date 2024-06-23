@@ -53,6 +53,16 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 				m.input.Focus()
 				return m, tea.Batch(cmds...)
 
+			case key.Matches(msg, m.KeyMap.Delete):
+				item := m.tagList.SelectedItem().(Item)
+				tag, exists := engine.FindTag(item.Title)
+				if !exists {
+					panic("Can't delete tag that doesn't exist")
+				}
+				tag.Delete()
+				m.UpdateTags()
+				return m, tea.Batch(cmds...)
+
 			case key.Matches(msg, m.KeyMap.Left):
 				m.focus = m.focus.Prev()
 
@@ -96,6 +106,9 @@ var pageStyle = lipgloss.NewStyle().
 var pageFocusStyle = pageStyle.Copy().
 	BorderForeground(lipgloss.Color("63"))
 
+var inputStyle = lipgloss.NewStyle().
+	MarginBottom(1)
+
 func (m Model) View() string {
 	tagListStyle := pageStyle
 	editorStyle := pageStyle
@@ -105,12 +118,23 @@ func (m Model) View() string {
 	case Editor:
 		editorStyle = pageFocusStyle
 	}
-	return lipgloss.JoinHorizontal(lipgloss.Top,
+
+	view := lipgloss.JoinHorizontal(lipgloss.Top,
 		tagListStyle.Width(30).Render(m.tagList.View()),
 		editorStyle.Width(30).Render(m.editor.View()),
-		m.input.View(),
 	)
 
+	inputView := ""
+	if m.input.Focused() {
+		inputView = m.input.View()
+	}
+
+	view = lipgloss.JoinVertical(lipgloss.Left,
+		view,
+		inputStyle.Render(inputView),
+	)
+
+	return view
 }
 
 func New() Model {

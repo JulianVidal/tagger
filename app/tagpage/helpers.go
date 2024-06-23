@@ -29,7 +29,12 @@ func (m *Model) UpdateTags() {
 		items = append(items, Item{Title: tag})
 	}
 	m.tagList.SetItems(items)
+	m.tagList.Select(0)
 
-	item := m.tagList.SelectedItem().(Item)
-	m.editor.SetEditorTag(item.Title)
+	item, ok := m.tagList.SelectedItem().(Item)
+	if ok {
+		m.editor.SetEditorTag(item.Title)
+	} else {
+		m.editor.ClearEditor()
+	}
 }
