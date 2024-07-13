@@ -2,25 +2,73 @@ package engine
 
 import (
 	"fmt"
+	"io/fs"
 	"os"
+	"path/filepath"
+	"strings"
 )
-
-// TODO: Create a TUI that shows all the files, search with query or filename, like locate and everything
-// TODO: Add a way to edit the children of tags
-// TODO: Add a way to edit the parents of tags
-// TODO: Add a way to edit the parents of objects
 
 var tagMap map[string]*Tag
 var objectMap map[string]*Object
 
-func Init() {
-	data, err := os.ReadFile("engine.json")
+func Init(target_dir string, engine_path string) {
+	data, err := os.ReadFile(engine_path)
 	if err != nil {
 		New()
 		return
 	}
 
 	err = FromJson(data)
+	if err != nil {
+		panic(err)
+	}
+
+	// Walks target directory, only follows 1 symlink
+	err = filepath.Walk(target_dir,
+		func(path string, info os.FileInfo, err error) error {
+			if err != nil {
+				return err
+			}
+			if path == target_dir || info.IsDir() {
+				return nil
+			}
+
+			// If it is a symlink it reads it
+			if info.Mode()&fs.ModeSymlink != 0 {
+				sym_path, err := os.Readlink(path)
+				if err != nil {
+					return err
+				}
+
+				sym_info, err := os.Stat(sym_path)
+				if err != nil {
+					panic(err)
+				}
+
+				if sym_info.IsDir() {
+					err = filepath.Walk(sym_path,
+						func(in_sym string, info os.FileInfo, err error) error {
+							if err != nil {
+								return err
+							}
+							if in_sym == path || info.IsDir() {
+								return nil
+							}
+							p := filepath.Join(filepath.Base(sym_path), strings.TrimPrefix(in_sym, sym_path+string(os.PathSeparator)))
+							NewObject(p) // Ignore error if object already exists
+							return nil
+						})
+				} else {
+					p := strings.TrimPrefix(path, target_dir+string(os.PathSeparator))
+					NewObject(p) // Ignore error if object already exists
+				}
+
+			} else {
+				p := strings.TrimPrefix(path, target_dir+string(os.PathSeparator))
+				NewObject(p) // Ignore error if object already exists
+			}
+			return nil
+		})
 	if err != nil {
 		panic(err)
 	}
@@ -82,6 +130,14 @@ func getAllObjectsFromTag(tag *Tag) map[string]*Object {
 }
 
 func Query(tags ...*Tag) ([]Object, error) {
+	if len(tags) == 0 {
+		var resultList []Object
+		for _, object := range objectMap {
+			resultList = append(resultList, *object)
+		}
+		return resultList, nil
+	}
+
 	results := make(map[string]*Object)
 
 	for _, tag := range tags {

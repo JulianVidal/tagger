@@ -2,7 +2,6 @@ package filepage
 
 import (
 	"github.com/JulianVidal/tagger/internal/engine"
-	"github.com/JulianVidal/tagger/internal/indexer"
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -65,11 +64,5 @@ func (m Model) getFiles() []string {
 		tagged_files = append(tagged_files, object.Name())
 	}
 
-	files := indexer.Query("")
-
-	if len(tagged_files) != 0 {
-		files = union(tagged_files, files)
-	}
-
-	return files
+	return tagged_files
 }

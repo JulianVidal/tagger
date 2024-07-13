@@ -3,7 +3,7 @@ package filepage
 import (
 	"github.com/JulianVidal/tagger/app/editor"
 	"github.com/JulianVidal/tagger/app/taglist"
-	"github.com/JulianVidal/tagger/internal/indexer"
+	"github.com/JulianVidal/tagger/internal/engine"
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
@@ -101,7 +101,7 @@ func (m Model) View() string {
 	}
 	return lipgloss.JoinHorizontal(lipgloss.Top,
 		tagFilterStyle.Width(20).Render(m.tagFilter.View()),
-		fileListStyle.Width(30).Render(m.fileList.View()),
+		fileListStyle.Width(50).Render(m.fileList.View()),
 		editorStyle.Width(30).Render(m.editor.View()),
 	)
 }
@@ -109,8 +109,13 @@ func (m Model) View() string {
 func New() Model {
 
 	items := []list.Item{}
-	for _, file := range indexer.Query("") {
-		items = append(items, Item{Title: file})
+	objs, err := engine.Query()
+	if err != nil {
+		panic("Engine query failed")
+	}
+
+	for _, obj := range objs {
+		items = append(items, Item{Title: obj.Name()})
 	}
 
 	l := list.New(items, itemDelegate{}, 20, 14)
